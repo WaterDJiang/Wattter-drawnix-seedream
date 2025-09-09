@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Island } from '../island';
 import classNames from 'classnames';
 import { useI18n } from '../../i18n';
@@ -29,36 +30,28 @@ export const AIInput: React.FC<AIInputProps> = ({
   const { t } = useI18n();
   const board = useBoard();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const ratioButtonRef = useRef<HTMLButtonElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [selectedRatio, setSelectedRatio] = useState<string>('3:4');
   const [showRatioDropdown, setShowRatioDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
-  // Auto-resize textarea
+  // Keep textarea at fixed height
   useEffect(() => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
-      textarea.style.height = 'auto';
-      const scrollHeight = textarea.scrollHeight;
-      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
-      const maxHeight = lineHeight * maxRows;
-      
-      if (scrollHeight > maxHeight) {
-        textarea.style.height = maxHeight + 'px';
-        textarea.style.overflowY = 'auto';
-      } else {
-        textarea.style.height = scrollHeight + 'px';
-        textarea.style.overflowY = 'hidden';
-      }
+      textarea.style.height = '48px';
+      textarea.style.overflowY = 'hidden';
     }
   }, [inputValue, maxRows]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showRatioDropdown && !(event.target as Element).closest('.ai-ratio-selector')) {
+      if (showRatioDropdown && !(event.target as Element).closest('.ai-ratio-selector') && !(event.target as Element).closest('.ai-ratio-menu')) {
         setShowRatioDropdown(false);
       }
     };
@@ -193,108 +186,109 @@ export const AIInput: React.FC<AIInputProps> = ({
     <div className={classNames('ai-input-container', className)}>
       <div className="ai-input-card">
         <form onSubmit={handleFormSubmit} className="ai-input-form">
-          {/* 主输入区域 */}
-          <div className="ai-input-main-section">
+          {/* 单行输入区域 - 所有控件整合 */}
+          <div className="ai-input-unified-row">
+            {/* 图片上传 - 移到最左边 */}
+            <div className="ai-upload-section">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="ai-file-input"
+                disabled={uploadedImages.length >= 10}
+                id="ai-file-upload"
+                style={{ display: 'none' }}
+              />
+              <button 
+                type="button"
+                className={classNames('ai-upload-btn', {
+                  'ai-upload-btn--active': uploadedImages.length > 0,
+                  'ai-upload-btn--disabled': uploadedImages.length >= 10
+                })}
+                onClick={() => document.getElementById('ai-file-upload')?.click()}
+                disabled={uploadedImages.length >= 10}
+                title={uploadedImages.length >= 10 ? "已达图片上传上限" : "上传参考图片"}
+              >
+                <Image size={20} strokeWidth={1.5} />
+                {uploadedImages.length > 0 && (
+                  <span className="ai-upload-badge">{uploadedImages.length}</span>
+                )}
+              </button>
+            </div>
+
             <div className="ai-input-field-wrapper">
               <textarea
                 ref={textareaRef}
                 className={classNames('ai-input-field', {
-                  'ai-input-field--focused': isExpanded,
-                  'ai-input-field--loading': isLoading
+                  'ai-input-field--focused': isExpanded
                 })}
                 value={inputValue}
                 onChange={handleInputChangeLocal}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsExpanded(true)}
-                placeholder={isLoading ? "AI正在创作中..." : "描述你想要生成的图片..."}
+                placeholder="描述你想要生成的图片..."
                 rows={1}
-                disabled={isLoading}
                 aria-label={t('ai.input.placeholder') || placeholder}
               />
-              {isLoading && (
-                <div className="ai-input-loading-indicator">
-                  <Sparkles className="ai-loading-icon" size={16} />
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* 工具栏区域 */}
-          <div className="ai-toolbar">
-            <div className="ai-toolbar-left">
-              {/* 图片上传 */}
-              <div className="ai-upload-section">
-                <label className={classNames('ai-upload-trigger', {
-                  'ai-upload-trigger--has-images': uploadedImages.length > 0,
-                  'ai-upload-trigger--disabled': uploadedImages.length >= 10
-                })}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="ai-file-input"
-                    disabled={uploadedImages.length >= 10}
-                  />
-                  <Image size={16} />
-                  {uploadedImages.length > 0 && (
-                    <span className="ai-upload-counter">{uploadedImages.length}</span>
-                  )}
-                </label>
-              </div>
-
+            
+            {/* 右侧工具按钮组 */}
+            <div className="ai-controls-group">
               {/* 比例选择 */}
-              <div className="ai-ratio-control">
+              <div className="ai-ratio-selector">
                 <button 
+                  ref={ratioButtonRef}
                   type="button"
-                  className={classNames('ai-ratio-trigger', {
-                    'ai-ratio-trigger--open': showRatioDropdown
+                  className={classNames('ai-ratio-btn', {
+                    'ai-ratio-btn--open': showRatioDropdown
                   })}
-                  onClick={() => setShowRatioDropdown(!showRatioDropdown)}
+                  onClick={() => {
+                    if (!showRatioDropdown && ratioButtonRef.current) {
+                      const rect = ratioButtonRef.current.getBoundingClientRect();
+                      const menuHeight = aspectRatios.length * 36 + 16; // 动态计算：选项数 * 36px + padding
+                      const spacing = 4; // 按钮和菜单间距
+                      
+                      let top = rect.top - menuHeight - spacing;
+                      
+                      // 边界检测：如果菜单会超出视口顶部，则显示在按钮下方
+                      if (top < 10) {
+                        top = rect.bottom + spacing;
+                      }
+                      
+                      setDropdownPosition({
+                        top: top,
+                        left: rect.left,
+                        width: rect.width
+                      });
+                    }
+                    setShowRatioDropdown(!showRatioDropdown);
+                  }}
+                  title="选择图片比例"
                 >
-                  <span className="ai-ratio-label">
+                  <span className="ai-ratio-current">
                     {aspectRatios.find(r => r.value === selectedRatio)?.label || '3:4'}
                   </span>
-                  <ChevronDown size={14} />
+                  <ChevronDown 
+                    size={16} 
+                    strokeWidth={1.5}
+                    className="ai-ratio-chevron"
+                  />
                 </button>
-                {showRatioDropdown && (
-                  <div className="ai-ratio-menu">
-                    {aspectRatios.map((ratio) => (
-                      <button
-                        key={ratio.value}
-                        type="button"
-                        className={classNames('ai-ratio-item', {
-                          'ai-ratio-item--selected': ratio.value === selectedRatio
-                        })}
-                        onClick={() => {
-                          setSelectedRatio(ratio.value);
-                          setShowRatioDropdown(false);
-                        }}
-                      >
-                        {ratio.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
 
-            {/* 生成按钮 */}
-            <button
-              type="submit"
-              className={classNames('ai-generate-btn', { 
-                'ai-generate-btn--loading': isLoading,
-                'ai-generate-btn--disabled': !inputValue.trim()
-              })}
-              disabled={!inputValue.trim() || isLoading}
-              title={isLoading ? "生成中..." : "生成图片 (Enter)"}
-            >
-              {isLoading ? (
-                <Sparkles className="ai-btn-icon ai-btn-icon--loading" size={16} />
-              ) : (
-                <Send className="ai-btn-icon" size={16} />
-              )}
-            </button>
+              {/* 生成按钮 */}
+              <button
+                type="submit"
+                className={classNames('ai-send-btn', { 
+                  'ai-send-btn--disabled': !inputValue.trim()
+                })}
+                disabled={!inputValue.trim()}
+                title="开始创作 (⏎)"
+              >
+                <Send className="ai-send-icon" size={20} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
 
           {/* 图片预览区域 */}
@@ -325,6 +319,35 @@ export const AIInput: React.FC<AIInputProps> = ({
           )}
         </form>
       </div>
+      {showRatioDropdown && createPortal(
+        <div 
+          className="ai-ratio-menu"
+          style={{
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            zIndex: 9999
+          }}
+        >
+          {aspectRatios.map((ratio) => (
+            <button
+              key={ratio.value}
+              type="button"
+              className={classNames('ai-ratio-item', {
+                'ai-ratio-item--selected': ratio.value === selectedRatio
+              })}
+              onClick={() => {
+                setSelectedRatio(ratio.value);
+                setShowRatioDropdown(false);
+              }}
+            >
+              {ratio.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
