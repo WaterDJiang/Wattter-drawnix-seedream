@@ -1,0 +1,332 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Island } from '../island';
+import classNames from 'classnames';
+import { useI18n } from '../../i18n';
+import { ToolButton } from '../tool-button';
+import { SendIcon } from '../icons';
+import { Paperclip, Send, X, Image, Sparkles, ChevronDown } from 'lucide-react';
+import { useBoard } from '@plait-board/react-board';
+import { PlaitElement } from '@plait/core';
+import { imageGenerationAPI, ImageGenerationResult } from '../../utils/image-generation';
+import { createImagePlaceholders, replacePlaceholderWithImage } from '../../utils/add-generated-image';
+import './ai-input.scss';
+
+export interface AIInputProps {
+  className?: string;
+  placeholder?: string;
+  maxRows?: number;
+  onSubmit?: (message: string) => void;
+  apiEndpoint?: string;
+}
+
+export const AIInput: React.FC<AIInputProps> = ({
+  className,
+  placeholder = "输入图片描述来生成...",
+  maxRows = 4,
+  onSubmit,
+  apiEndpoint = '/api/ai-chat',
+}) => {
+  const { t } = useI18n();
+  const board = useBoard();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [selectedRatio, setSelectedRatio] = useState<string>('3:4');
+  const [showRatioDropdown, setShowRatioDropdown] = useState(false);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+      const maxHeight = lineHeight * maxRows;
+      
+      if (scrollHeight > maxHeight) {
+        textarea.style.height = maxHeight + 'px';
+        textarea.style.overflowY = 'auto';
+      } else {
+        textarea.style.height = scrollHeight + 'px';
+        textarea.style.overflowY = 'hidden';
+      }
+    }
+  }, [inputValue, maxRows]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showRatioDropdown && !(event.target as Element).closest('.ai-ratio-selector')) {
+        setShowRatioDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showRatioDropdown]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (inputValue.trim() && !isLoading) {
+        handleFormSubmit(e as any);
+      }
+    } else if (e.key === 'Escape') {
+      setIsExpanded(false);
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim() && !isLoading) {
+      setIsLoading(true);
+      
+      const currentPrompt = inputValue.trim();
+      setInputValue('');
+      
+      const options = {
+        position: [400, 300] as [number, number],
+        spacing: 320,
+        maxWidth: 300
+      };
+      
+      // 立即创建占位符
+      const placeholders = createImagePlaceholders(board, 3, options);
+      
+      try {
+        // 转换上传的图片为 data URLs
+        const imageUrls: string[] = [];
+        for (const file of uploadedImages) {
+          const dataUrl = await convertFileToDataURL(file);
+          imageUrls.push(dataUrl);
+        }
+
+        // Call image generation API  
+        const result = await imageGenerationAPI.generateImages(
+          {
+            prompt: currentPrompt,
+            maxImages: 3,
+            size: selectedRatio === 'auto' ? '2K' : selectedRatio,
+            watermark: true,
+            ...(imageUrls.length > 0 && { image: imageUrls })
+          },
+          // 进度回调：每生成一张图片就替换对应的占位符
+          (imageResult) => {
+            if (placeholders[imageResult.index]) {
+              replacePlaceholderWithImage(
+                board, 
+                placeholders[imageResult.index], 
+                imageResult, 
+                options
+              ).catch(error => {
+                console.error(`Failed to replace placeholder ${imageResult.index}:`, error);
+              });
+            }
+          }
+        );
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        
+        if (onSubmit) {
+          onSubmit(currentPrompt);
+        }
+        
+      } catch (error) {
+        console.error('Image generation error:', error);
+        alert(`图片生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        
+        // 清理占位符
+        try {
+          const { DrawTransforms } = await import('@plait/draw');
+          DrawTransforms.removeElements(board, placeholders);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup placeholders:', cleanupError);
+        }
+      }
+      
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChangeLocal = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    // 限制最多10张图片
+    const limitedFiles = validFiles.slice(0, 10 - uploadedImages.length);
+    setUploadedImages(prev => [...prev, ...limitedFiles].slice(0, 10));
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const convertFileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const aspectRatios = [
+    { label: '智能', value: 'auto' },
+    { label: '21:9', value: '21:9' },
+    { label: '16:9', value: '16:9' },
+    { label: '3:2', value: '3:2' },
+    { label: '4:3', value: '4:3' },
+    { label: '1:1', value: '1:1' },
+    { label: '3:4', value: '3:4' },
+    { label: '2:3', value: '2:3' },
+    { label: '9:16', value: '9:16' },
+  ];
+
+  return (
+    <div className={classNames('ai-input-container', className)}>
+      <div className="ai-input-card">
+        <form onSubmit={handleFormSubmit} className="ai-input-form">
+          {/* 主输入区域 */}
+          <div className="ai-input-main-section">
+            <div className="ai-input-field-wrapper">
+              <textarea
+                ref={textareaRef}
+                className={classNames('ai-input-field', {
+                  'ai-input-field--focused': isExpanded,
+                  'ai-input-field--loading': isLoading
+                })}
+                value={inputValue}
+                onChange={handleInputChangeLocal}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsExpanded(true)}
+                placeholder={isLoading ? "AI正在创作中..." : "描述你想要生成的图片..."}
+                rows={1}
+                disabled={isLoading}
+                aria-label={t('ai.input.placeholder') || placeholder}
+              />
+              {isLoading && (
+                <div className="ai-input-loading-indicator">
+                  <Sparkles className="ai-loading-icon" size={16} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 工具栏区域 */}
+          <div className="ai-toolbar">
+            <div className="ai-toolbar-left">
+              {/* 图片上传 */}
+              <div className="ai-upload-section">
+                <label className={classNames('ai-upload-trigger', {
+                  'ai-upload-trigger--has-images': uploadedImages.length > 0,
+                  'ai-upload-trigger--disabled': uploadedImages.length >= 10
+                })}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="ai-file-input"
+                    disabled={uploadedImages.length >= 10}
+                  />
+                  <Image size={16} />
+                  {uploadedImages.length > 0 && (
+                    <span className="ai-upload-counter">{uploadedImages.length}</span>
+                  )}
+                </label>
+              </div>
+
+              {/* 比例选择 */}
+              <div className="ai-ratio-control">
+                <button 
+                  type="button"
+                  className={classNames('ai-ratio-trigger', {
+                    'ai-ratio-trigger--open': showRatioDropdown
+                  })}
+                  onClick={() => setShowRatioDropdown(!showRatioDropdown)}
+                >
+                  <span className="ai-ratio-label">
+                    {aspectRatios.find(r => r.value === selectedRatio)?.label || '3:4'}
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+                {showRatioDropdown && (
+                  <div className="ai-ratio-menu">
+                    {aspectRatios.map((ratio) => (
+                      <button
+                        key={ratio.value}
+                        type="button"
+                        className={classNames('ai-ratio-item', {
+                          'ai-ratio-item--selected': ratio.value === selectedRatio
+                        })}
+                        onClick={() => {
+                          setSelectedRatio(ratio.value);
+                          setShowRatioDropdown(false);
+                        }}
+                      >
+                        {ratio.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 生成按钮 */}
+            <button
+              type="submit"
+              className={classNames('ai-generate-btn', { 
+                'ai-generate-btn--loading': isLoading,
+                'ai-generate-btn--disabled': !inputValue.trim()
+              })}
+              disabled={!inputValue.trim() || isLoading}
+              title={isLoading ? "生成中..." : "生成图片 (Enter)"}
+            >
+              {isLoading ? (
+                <Sparkles className="ai-btn-icon ai-btn-icon--loading" size={16} />
+              ) : (
+                <Send className="ai-btn-icon" size={16} />
+              )}
+            </button>
+          </div>
+
+          {/* 图片预览区域 */}
+          {uploadedImages.length > 0 && (
+            <div className="ai-images-preview">
+              <div className="ai-images-grid">
+                {uploadedImages.map((file, index) => (
+                  <div key={index} className="ai-image-item">
+                    <div className="ai-image-wrapper">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt={`参考图片 ${index + 1}`}
+                        className="ai-image"
+                      />
+                      <button
+                        type="button"
+                        className="ai-image-remove"
+                        onClick={() => removeImage(index)}
+                        aria-label="删除图片"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AIInput;
