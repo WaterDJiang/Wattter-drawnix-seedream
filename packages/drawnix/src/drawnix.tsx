@@ -39,6 +39,7 @@ import { buildTextLinkPlugin } from './plugins/with-text-link';
 import { LinkPopup } from './components/popup/link-popup/link-popup';
 import { I18nProvider } from './i18n';
 import { Tutorial } from './components/tutorial';
+import { AIInput } from './components/ai-input';
 
 export type DrawnixProps = {
   value: PlaitElement[];
@@ -70,6 +71,8 @@ export const Drawnix: React.FC<DrawnixProps> = ({
     hideScrollbar: false,
     disabledScrollOnNonFocus: false,
     themeColors: MindThemeColors,
+    // 修复高DPI屏幕缩放问题
+    pixelRatio: window.devicePixelRatio,
   };
 
   const [appState, setAppState] = useState<DrawnixState>(() => {
@@ -155,6 +158,7 @@ export const Drawnix: React.FC<DrawnixProps> = ({
             <ClosePencilToolbar></ClosePencilToolbar>
             <TTDDialog container={containerRef.current}></TTDDialog>
             <CleanConfirm container={containerRef.current}></CleanConfirm>
+            <AIInput></AIInput>
           </Wrapper>
         </div>
       </DrawnixContext.Provider>
