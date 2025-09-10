@@ -247,7 +247,7 @@ export async function generateImageToImage(
     prompt: request.prompt,
     // 豆包API：单图用字符串，多图用数组
     image: request.images.length === 1 ? request.images[0] : request.images,
-    size: "2K", // 豆包API使用预设尺寸，让API自动选择合适的分辨率
+    size: request.size || "2K", // 使用传入的尺寸参数，如果没有则默认2K
     response_format: "url",
     watermark: request.watermark || false,
     stream: true,
