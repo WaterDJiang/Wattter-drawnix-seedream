@@ -4,6 +4,8 @@ import {
   PlaitBoard,
   PlaitPointerType,
   RectangleClient,
+  toHostPointFromViewBoxPoint,
+  toScreenPointFromHostPoint,
 } from '@plait/core';
 import { isHotkey } from 'is-hotkey';
 import { addImage, saveAsImage } from '../utils/image';
@@ -46,9 +48,16 @@ export const buildDrawnixHotkeyPlugin = (
           // 计算对话框位置（选中图片的下方20px）
           const firstImage = selectedImages[0];
           const rect = RectangleClient.getRectangleByPoints(firstImage.points);
+
+          // 将画布坐标转换为屏幕坐标
+          const screenStart = toScreenPointFromHostPoint(
+            board,
+            toHostPointFromViewBoxPoint(board, [rect.x, rect.y + rect.height])
+          );
+
           const position = {
-            x: rect.x, // 与图片左对齐
-            y: rect.y + rect.height + 20 // 下方20px
+            x: screenStart[0], // 与图片左对齐
+            y: screenStart[1] + 20 // 下方20px
           };
 
           updateAppState({
