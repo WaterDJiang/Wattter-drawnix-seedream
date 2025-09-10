@@ -167,7 +167,8 @@ async function handleImageToImageGeneration(
     const placeholders = createImagePlaceholders(board, {
       position: placeholderPosition,
       spacing: 20,
-      maxWidth: targetSize.width,
+      maxWidth: Math.min(targetSize.width, 300), // 限制占位符最大宽度为300px
+      aspectRatio: 'custom', // 使用自定义比例
       count: 1, // 默认1个占位符
       customWidth: targetSize.width,
       customHeight: targetSize.height
@@ -227,7 +228,8 @@ async function handleImageToImageGeneration(
           const newPlaceholders = createImagePlaceholders(board, {
             position: newPosition,
             spacing: 20,
-            maxWidth: targetSize.width,
+            maxWidth: Math.min(targetSize.width, 300), // 限制占位符最大宽度为300px
+            aspectRatio: 'custom', // 使用自定义比例
             count: 1,
             customWidth: targetSize.width,
             customHeight: targetSize.height
