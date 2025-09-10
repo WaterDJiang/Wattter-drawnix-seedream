@@ -126,14 +126,20 @@ async function handleImageToImageGeneration(
     // 使用AI对话框的比例设置来确定生成图片的尺寸
     const apiSize = convertAspectRatioToPixelSize(selectedAspectRatio);
 
-    // 解析尺寸用于创建占位符
-    let targetSize: { width: number; height: number };
+    // 解析尺寸用于创建占位符和API调用
+    let originalSize: { width: number; height: number };
     if (apiSize === '2K') {
-      targetSize = { width: 2048, height: 2048 }; // 默认正方形
+      originalSize = { width: 2048, height: 2048 }; // 默认正方形
     } else {
       const [width, height] = apiSize.split('x').map(Number);
-      targetSize = { width, height };
+      originalSize = { width, height };
     }
+
+    // 占位符使用缩小4倍的尺寸，更美观
+    const targetSize = {
+      width: Math.round(originalSize.width / 4),
+      height: Math.round(originalSize.height / 4)
+    };
 
     console.log('🎨 目标尺寸:', { targetSize, apiSize, pixels: targetSize.width * targetSize.height });
 
@@ -202,17 +208,21 @@ async function handleImageToImageGeneration(
         // 如果是第一张图片，替换现有占位符
         if (result.index === 0 && placeholders[0]) {
           const placeholder = placeholders[0];
-          const [width, height] = result.size.split('x').map(Number);
+          const [originalWidth, originalHeight] = result.size.split('x').map(Number);
+
+          // 缩小4倍插入，使画布更美观
+          const displayWidth = Math.round(originalWidth / 4);
+          const displayHeight = Math.round(originalHeight / 4);
 
           // 使用replacePlaceholderWithImage函数来替换占位符
           replacePlaceholderWithImage(board, placeholder, {
             url: result.url,
-            width,
-            height,
+            width: displayWidth,
+            height: displayHeight,
             size: result.size
           });
 
-          console.log('✅ 成功替换第一个占位符为真实图片:', result.url);
+          console.log('✅ 成功替换第一个占位符为真实图片:', result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
         }
         // 如果是后续图片，动态创建新占位符并立即替换
         else if (result.index > 0) {
@@ -240,15 +250,20 @@ async function handleImageToImageGeneration(
             placeholders.push(newPlaceholder); // 添加到占位符数组
 
             // 立即替换为真实图片
-            const [width, height] = result.size.split('x').map(Number);
+            const [originalWidth, originalHeight] = result.size.split('x').map(Number);
+
+            // 缩小4倍插入，使画布更美观
+            const displayWidth = Math.round(originalWidth / 4);
+            const displayHeight = Math.round(originalHeight / 4);
+
             replacePlaceholderWithImage(board, newPlaceholder, {
               url: result.url,
-              width,
-              height,
+              width: displayWidth,
+              height: displayHeight,
               size: result.size
             });
 
-            console.log(`✅ 成功创建并替换第${result.index + 1}张图片:`, result.url);
+            console.log(`✅ 成功创建并替换第${result.index + 1}张图片:`, result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
           }
         }
       }
