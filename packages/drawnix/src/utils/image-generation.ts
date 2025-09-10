@@ -24,8 +24,17 @@ export interface ImageGenerationResponse {
   error?: string;
 }
 
+// 根据环境决定API端点
+const getDefaultEndpoint = () => {
+  if (typeof window !== 'undefined') {
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocalDev ? 'http://localhost:3001/generate-image' : '/api/generate-image';
+  }
+  return '/api/generate-image';
+};
+
 const DEFAULT_CONFIG: Partial<ImageGenerationConfig> = {
-  endpoint: 'http://localhost:3001/generate-image',
+  endpoint: getDefaultEndpoint(),
   model: 'doubao-seedream-4-0-250828',
 };
 
@@ -48,6 +57,8 @@ export class ImageGenerationAPI {
       maxImages,
       size: size || '2K', // 使用传入的size，如果没有则默认为2K
       watermark,
+      apiKey: this.config.apiKey, // 从配置中包含API密钥
+      model: this.config.model, // 从配置中包含模型
     };
 
     console.log('Sending image generation request with size:', size, 'requestBody:', requestBody);
@@ -133,7 +144,37 @@ export class ImageGenerationAPI {
   }
 }
 
-// 默认实例（需要在使用前设置API key）
-export const imageGenerationAPI = new ImageGenerationAPI({
-  apiKey: '30046952-67e8-42d3-aa44-d0da565c3bfb', // 从你的示例中获取
-});
+// 创建获取当前设置的函数
+const getCurrentSettings = () => {
+  try {
+    const saved = localStorage.getItem('drawnix-settings');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        apiKey: parsed.apiKey || '',
+        endpoint: parsed.apiEndpoint || getDefaultEndpoint(),
+        model: parsed.defaultModel || 'doubao-seedream-4-0-250828',
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to load settings:', error);
+  }
+  return {
+    apiKey: '',
+    endpoint: getDefaultEndpoint(),
+    model: 'doubao-seedream-4-0-250828',
+  };
+};
+
+// 创建动态API实例
+export const createImageGenerationAPI = (): ImageGenerationAPI => {
+  const settings = getCurrentSettings();
+  return new ImageGenerationAPI({
+    apiKey: settings.apiKey,
+    endpoint: settings.endpoint,
+    model: settings.model,
+  });
+};
+
+// 默认实例（为了向后兼容）
+export const imageGenerationAPI = createImageGenerationAPI();

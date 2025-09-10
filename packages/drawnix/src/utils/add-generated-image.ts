@@ -12,6 +12,16 @@ export interface AddGeneratedImageOptions {
   customHeight?: number;
 }
 
+// 根据环境决定图片代理端点
+const getImageProxyUrl = (imageUrl: string) => {
+  if (typeof window !== 'undefined') {
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const proxyBase = isLocalDev ? 'http://localhost:3001/image-proxy' : '/api/image-proxy';
+    return `${proxyBase}?url=${encodeURIComponent(imageUrl)}`;
+  }
+  return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+};
+
 /**
  * 加载图片并获取尺寸信息
  */
@@ -27,7 +37,7 @@ export const loadImageInfo = async (url: string): Promise<{width: number, height
       resolve({ width: 400, height: 300 });
     };
     // 使用代理URL来避免CORS问题
-    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(url)}`;
+    const proxyUrl = getImageProxyUrl(url);
     image.src = proxyUrl;
   });
 };
@@ -80,7 +90,7 @@ export const addGeneratedImageToBoard = async (
     const height = (width / imageInfo.width) * imageInfo.height;
     
     // 构建图片数据 - 使用代理URL避免CORS问题
-    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(result.url)}`;
+    const proxyUrl = getImageProxyUrl(result.url);
     const imageItem = {
       url: proxyUrl,
       width,
@@ -170,7 +180,7 @@ export const replacePlaceholderWithImage = async (
     const height = (width / imageInfo.width) * imageInfo.height;
     
     // 创建图片元素 - 使用代理URL避免CORS问题  
-    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(result.url)}`;
+    const proxyUrl = getImageProxyUrl(result.url);
     const imageItem = {
       url: proxyUrl,
       width,

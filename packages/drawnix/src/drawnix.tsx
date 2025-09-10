@@ -35,6 +35,52 @@ import {
 import { ClosePencilToolbar } from './components/toolbar/pencil-mode-toolbar';
 import { TTDDialog } from './components/ttd-dialog/ttd-dialog';
 import { CleanConfirm } from './components/clean-confirm/clean-confirm';
+import { SettingsModal, AppSettings } from './components/toolbar/app-toolbar/settings-modal';
+
+// 加载设置的函数
+// 根据环境决定API端点
+const getDefaultEndpoint = () => {
+  if (typeof window !== 'undefined') {
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isLocalDev ? 'http://localhost:3001/generate-image' : '/api/generate-image';
+  }
+  return '/api/generate-image';
+};
+
+const loadSettings = (): AppSettings => {
+  console.log('Loading settings from localStorage...');
+  try {
+    const saved = localStorage.getItem('drawnix-settings');
+    console.log('Raw saved settings:', saved);
+    
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      console.log('Parsed settings:', parsed);
+      
+      const result = {
+        apiEndpoint: parsed.apiEndpoint || getDefaultEndpoint(),
+        apiKey: parsed.apiKey || '',
+        watermarkEnabled: parsed.watermarkEnabled !== undefined ? parsed.watermarkEnabled : true,
+        defaultModel: parsed.defaultModel || 'doubao-seedream-4-0-250828',
+      };
+      
+      console.log('Final loaded settings:', result);
+      return result;
+    }
+  } catch (error) {
+    console.warn('Failed to load settings from localStorage:', error);
+  }
+  
+  const defaultSettings = {
+    apiEndpoint: getDefaultEndpoint(),
+    apiKey: '',
+    watermarkEnabled: true,
+    defaultModel: 'doubao-seedream-4-0-250828',
+  };
+  
+  console.log('Using default settings:', defaultSettings);
+  return defaultSettings;
+};
 import { buildTextLinkPlugin } from './plugins/with-text-link';
 import { LinkPopup } from './components/popup/link-popup/link-popup';
 import { I18nProvider } from './i18n';
@@ -84,6 +130,7 @@ export const Drawnix: React.FC<DrawnixProps> = ({
       isPencilMode: false,
       openDialogType: null,
       openCleanConfirm: false,
+      openSettings: false,
     };
   });
 
@@ -158,6 +205,22 @@ export const Drawnix: React.FC<DrawnixProps> = ({
             <ClosePencilToolbar></ClosePencilToolbar>
             <TTDDialog container={containerRef.current}></TTDDialog>
             <CleanConfirm container={containerRef.current}></CleanConfirm>
+            <SettingsModal
+              isOpen={appState.openSettings}
+              onClose={() => setAppState({...appState, openSettings: false})}
+              onSave={(settings) => {
+                // 保存设置逻辑
+                console.log('Saving settings to localStorage:', settings);
+                localStorage.setItem('drawnix-settings', JSON.stringify(settings));
+                
+                // 验证保存是否成功
+                const saved = localStorage.getItem('drawnix-settings');
+                console.log('Settings saved successfully:', saved);
+                
+                window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }));
+              }}
+              initialSettings={loadSettings()}
+            />
             <AIInput></AIInput>
           </Wrapper>
         </div>

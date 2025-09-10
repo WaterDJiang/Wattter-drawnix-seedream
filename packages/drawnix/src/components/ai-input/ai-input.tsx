@@ -8,7 +8,7 @@ import { SendIcon } from '../icons';
 import { Paperclip, Send, X, Image, Sparkles, ChevronDown } from 'lucide-react';
 import { useBoard } from '@plait-board/react-board';
 import { PlaitElement } from '@plait/core';
-import { imageGenerationAPI, ImageGenerationResult } from '../../utils/image-generation';
+import { createImageGenerationAPI, ImageGenerationResult } from '../../utils/image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from '../../utils/add-generated-image';
 import './ai-input.scss';
 
@@ -121,12 +121,27 @@ export const AIInput: React.FC<AIInputProps> = ({
         // Call image generation API  
         const pixelSize = convertAspectRatioToPixelSize(selectedRatio);
         console.log('Selected ratio:', selectedRatio, 'Converted to pixel size:', pixelSize);
-        const result = await imageGenerationAPI.generateImages(
+        // 获取当前设置中的水印配置
+        const getCurrentWatermarkSetting = () => {
+          try {
+            const saved = localStorage.getItem('drawnix-settings');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              return parsed.watermarkEnabled !== undefined ? parsed.watermarkEnabled : true;
+            }
+          } catch (error) {
+            console.warn('Failed to load watermark setting:', error);
+          }
+          return true; // 默认启用水印
+        };
+
+        const api = createImageGenerationAPI();
+        const result = await api.generateImages(
           {
             prompt: currentPrompt,
             maxImages: 1,
             size: pixelSize,
-            watermark: true,
+            watermark: getCurrentWatermarkSetting(),
             ...(imageUrls.length > 0 && { image: imageUrls })
           },
           // 进度回调：每生成一张图片就替换对应的占位符

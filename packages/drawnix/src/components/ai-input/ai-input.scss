@@ -1121,3 +1121,378 @@ $control-height: 48px;
     transform: translateY(1px);
   }
 }
+
+// 设置模态框样式 - 浅色风格
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.settings-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  width: 500px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.settings-modal-close {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.settings-modal-content {
+  padding: 20px 24px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  
+  label {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+  }
+}
+
+.settings-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #1f2937;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+  
+  &--error {
+    border-color: #ef4444;
+    
+    &:focus {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+.settings-field-error {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.settings-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+  
+  .settings-toggle-description {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 400;
+  }
+}
+
+
+.settings-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafb;
+  flex-shrink: 0;
+}
+
+.settings-modal-reset {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #6b7280;
+  
+  &:hover {
+    background: #f9fafb;
+    color: #374151;
+  }
+}
+
+.settings-modal-main-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.settings-modal-cancel,
+.settings-modal-save {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.settings-modal-cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+  
+  &:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+}
+
+.settings-modal-save {
+  background: #3b82f6;
+  color: #ffffff;
+  
+  &:hover {
+    background: #2563eb;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+// 高级设置切换按钮样式
+.settings-advanced-toggle {
+  margin-bottom: 16px;
+}
+
+.settings-advanced-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: #374151;
+  }
+  
+  &:focus {
+    outline: none;
+    color: #3b82f6;
+  }
+}
+
+.settings-advanced-arrow {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  
+  &--expanded {
+    transform: rotate(180deg);
+  }
+}
+
+// API密钥输入框带切换按钮样式
+.settings-input-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  
+  .settings-input {
+    padding-right: 50px; /* 为切换按钮留出空间 */
+  }
+}
+
+.settings-toggle-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+  
+  &:focus {
+    outline: none;
+    background: #e5e7eb;
+    color: #374151;
+  }
+}
+
+// 修复Switch组件样式问题
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 0;
+  gap: 16px;
+}
+
+.settings-toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+  margin: 0;
+  
+  .settings-toggle-description {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+}
+
+.settings-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  
+  &--off {
+    background: #e5e7eb;
+    
+    .settings-switch-thumb {
+      transform: translateX(2px);
+    }
+  }
+  
+  &--on {
+    background: #3b82f6;
+    
+    .settings-switch-thumb {
+      transform: translateX(22px);
+    }
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.settings-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}

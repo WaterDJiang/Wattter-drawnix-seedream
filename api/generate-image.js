@@ -5,7 +5,7 @@ const url = require('url');
 
 const PORT = 3001;
 const VOLCENGINE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
-const API_KEY = '30046952-67e8-42d3-aa44-d0da565c3bfb';
+// API密钥从客户端请求中获取，不再硬编码
 
 // CORS headers
 const corsHeaders = {
@@ -79,26 +79,43 @@ const handleImageGeneration = (req, res) => {
     try {
       const requestData = JSON.parse(body);
       
+      // 检查客户端是否提供了API密钥
+      const apiKey = requestData.apiKey;
+      if (!apiKey) {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ error: 'API密钥未提供，请在设置中配置API密钥' }));
+        return;
+      }
+
       // Prepare request to Volcengine API
-      const postData = JSON.stringify({
-        model: 'doubao-seedream-4-0-250828',
+      const maxImages = requestData.maxImages || 3;
+      const volcengineRequestData = {
+        model: requestData.model || 'doubao-seedream-4-0-250828',
         prompt: requestData.prompt,
         ...(requestData.image && { image: requestData.image }),
-        sequential_image_generation: 'auto',
-        sequential_image_generation_options: {
-          max_images: requestData.maxImages || 3
-        },
         response_format: 'url',
         size: requestData.size || '2K',
         stream: true,
         watermark: requestData.watermark !== false
-      });
+      };
+
+      // 根据生成图片数量决定是否启用序列生成
+      if (maxImages > 1) {
+        volcengineRequestData.sequential_image_generation = 'auto';
+        volcengineRequestData.sequential_image_generation_options = {
+          max_images: maxImages
+        };
+      } else {
+        volcengineRequestData.sequential_image_generation = 'disabled';
+      }
+
+      const postData = JSON.stringify(volcengineRequestData);
 
       const options = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Length': Buffer.byteLength(postData)
         }
       };

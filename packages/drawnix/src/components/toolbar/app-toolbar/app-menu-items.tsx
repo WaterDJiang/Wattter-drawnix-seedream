@@ -131,10 +131,15 @@ export const CleanBoard = () => {
       icon={TrashIcon}
       data-testid="reset-button"
       onSelect={() => {
-        setAppState({
+        console.log('CleanBoard onSelect called'); // 添加调试
+        console.log('CleanBoard current state:', appState);
+        const newState = {
           ...appState,
           openCleanConfirm: true,
-        });
+        };
+        console.log('CleanBoard new state:', newState);
+        setAppState(newState);
+        console.log('CleanBoard setAppState called');
       }}
       shortcut={getShortcutKey('CtrlOrCmd+Backspace')}
       aria-label={t('menu.cleanBoard')}
@@ -144,6 +149,37 @@ export const CleanBoard = () => {
   );
 };
 CleanBoard.displayName = 'CleanBoard';
+
+export const SettingsMenuInline = () => {
+  const { appState, setAppState } = useDrawnix();
+  console.log('SettingsMenuInline render, openSettings:', appState.openSettings);
+  console.log('SettingsMenuInline appState keys:', Object.keys(appState));
+  console.log('Does appState have openSettings?', 'openSettings' in appState);
+  console.log('SettingsMenuInline appState:', appState);
+  
+  return (
+    <MenuItem
+      icon={TrashIcon} // 临时使用TrashIcon测试
+      onSelect={() => {
+        console.log('SettingsMenuInline onSelect called');
+        console.log('Current appState in onSelect:', appState);
+        
+        const newState = {
+          ...appState,
+          openSettings: true,
+        };
+        console.log('New state to set:', newState);
+        
+        setAppState(newState);
+        console.log('setAppState called');
+      }}
+      aria-label="应用设置"
+    >
+      设置
+    </MenuItem>
+  );
+};
+SettingsMenuInline.displayName = 'SettingsMenuInline';
 
 export const Socials = () => {
   return (
