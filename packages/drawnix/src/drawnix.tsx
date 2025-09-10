@@ -230,7 +230,7 @@ async function handleImageToImageGeneration(
     console.log('🎨 占位符位置:', placeholderPosition);
 
     // 默认创建1个占位符，让API决定是否生成多张图片
-    const placeholders = createImagePlaceholders(board, {
+    const placeholders = await createImagePlaceholders(board, {
       position: placeholderPosition,
       spacing: 20,
       maxWidth: Math.min(targetSize.width, 300), // 限制占位符最大宽度为300px
@@ -277,7 +277,7 @@ async function handleImageToImageGeneration(
                 placeholderPosition[1]
               ];
 
-              const newPlaceholders = createImagePlaceholders(board, {
+              const newPlaceholders = await createImagePlaceholders(board, {
                 position: newPosition,
                 spacing: 20,
                 maxWidth: Math.min(targetSize.width, 300),
@@ -306,7 +306,7 @@ async function handleImageToImageGeneration(
             placeholderPosition[1]
           ];
 
-          const newPlaceholders = createImagePlaceholders(board, {
+          const newPlaceholders = await createImagePlaceholders(board, {
             position: newPosition,
             spacing: 20,
             maxWidth: Math.min(targetSize.width, 300),
