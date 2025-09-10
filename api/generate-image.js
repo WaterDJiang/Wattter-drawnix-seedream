@@ -29,11 +29,7 @@ module.exports = (req, res) => {
     return;
   }
 
-  // Handle GET requests for image proxy
-  if (req.method === 'GET' && req.url.startsWith('/image-proxy')) {
-    handleImageProxy(req, res);
-    return;
-  }
+
 
   res.status(404);
   Object.keys(corsHeaders).forEach(key => {
@@ -42,41 +38,7 @@ module.exports = (req, res) => {
   res.json({ error: 'Not Found' });
 }
 
-const handleImageProxy = (req, res) => {
-  const urlParam = new URLSearchParams(req.url.split('?')[1]);
-  const imageUrl = urlParam.get('url');
 
-  if (!imageUrl) {
-    res.status(400);
-    Object.keys(corsHeaders).forEach(key => {
-      res.setHeader(key, corsHeaders[key]);
-    });
-    res.json({ error: 'Missing url parameter' });
-    return;
-  }
-
-  // Proxy the image
-  const imageReq = https.request(imageUrl, (imageRes) => {
-    res.status(200);
-    Object.keys(corsHeaders).forEach(key => {
-      res.setHeader(key, corsHeaders[key]);
-    });
-    res.setHeader('Content-Type', imageRes.headers['content-type'] || 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    imageRes.pipe(res);
-  });
-
-  imageReq.on('error', (error) => {
-    console.error('Image proxy error:', error);
-    res.status(500);
-    Object.keys(corsHeaders).forEach(key => {
-      res.setHeader(key, corsHeaders[key]);
-    });
-    res.json({ error: 'Failed to fetch image' });
-  });
-
-  imageReq.end();
-};
 
 const handleImageGeneration = (req, res) => {
   try {
