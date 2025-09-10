@@ -255,7 +255,10 @@ export async function generateImageToImage(
   request: ImageToImageRequest,
   onProgress?: (response: ImageToImageResponse) => void
 ): Promise<ImageToImageResponse[]> {
-  const apiEndpoint = 'http://localhost:3001/generate-image';
+  // 根据环境选择API端点
+  const apiEndpoint = process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3001/generate-image'
+    : '/api/generate-image';
 
   // 根据豆包Seedream API文档格式化请求
   const requestBody: any = {

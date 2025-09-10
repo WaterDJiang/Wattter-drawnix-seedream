@@ -1,11 +1,7 @@
-// Simple Node.js proxy server for image generation API
-const http = require('http');
+// Vercel serverless function for image generation API
 const https = require('https');
-const url = require('url');
 
-const PORT = 3001;
 const VOLCENGINE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
-// API密钥从客户端请求中获取，不再硬编码
 
 // CORS headers
 const corsHeaders = {
@@ -15,16 +11,20 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': true
 };
 
-const handleRequest = (req, res) => {
+// Main Vercel function handler
+module.exports = (req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(200, corsHeaders);
+    res.status(200);
+    Object.keys(corsHeaders).forEach(key => {
+      res.setHeader(key, corsHeaders[key]);
+    });
     res.end();
     return;
   }
 
-  // Handle POST requests to /generate-image
-  if (req.method === 'POST' && req.url === '/generate-image') {
+  // Handle POST requests for image generation
+  if (req.method === 'POST') {
     handleImageGeneration(req, res);
     return;
   }
@@ -35,57 +35,64 @@ const handleRequest = (req, res) => {
     return;
   }
 
-  res.writeHead(404, corsHeaders);
-  res.end('Not Found');
+  res.status(404);
+  Object.keys(corsHeaders).forEach(key => {
+    res.setHeader(key, corsHeaders[key]);
+  });
+  res.json({ error: 'Not Found' });
 }
 
 const handleImageProxy = (req, res) => {
   const urlParam = new URLSearchParams(req.url.split('?')[1]);
   const imageUrl = urlParam.get('url');
-  
+
   if (!imageUrl) {
-    res.writeHead(400, corsHeaders);
-    res.end('Missing url parameter');
+    res.status(400);
+    Object.keys(corsHeaders).forEach(key => {
+      res.setHeader(key, corsHeaders[key]);
+    });
+    res.json({ error: 'Missing url parameter' });
     return;
   }
 
   // Proxy the image
   const imageReq = https.request(imageUrl, (imageRes) => {
-    res.writeHead(200, {
-      ...corsHeaders,
-      'Content-Type': imageRes.headers['content-type'] || 'image/jpeg',
-      'Cache-Control': 'public, max-age=86400'
+    res.status(200);
+    Object.keys(corsHeaders).forEach(key => {
+      res.setHeader(key, corsHeaders[key]);
     });
+    res.setHeader('Content-Type', imageRes.headers['content-type'] || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     imageRes.pipe(res);
   });
 
   imageReq.on('error', (error) => {
     console.error('Image proxy error:', error);
-    res.writeHead(500, corsHeaders);
-    res.end('Failed to fetch image');
+    res.status(500);
+    Object.keys(corsHeaders).forEach(key => {
+      res.setHeader(key, corsHeaders[key]);
+    });
+    res.json({ error: 'Failed to fetch image' });
   });
 
   imageReq.end();
 };
 
 const handleImageGeneration = (req, res) => {
+  try {
+    // Vercel automatically parses JSON body
+    const requestData = req.body || {};
 
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk.toString();
-  });
-
-  req.on('end', () => {
-    try {
-      const requestData = JSON.parse(body);
-      
-      // 检查客户端是否提供了API密钥
-      const apiKey = requestData.apiKey;
-      if (!apiKey) {
-        res.writeHead(400, corsHeaders);
-        res.end(JSON.stringify({ error: 'API密钥未提供，请在设置中配置API密钥' }));
-        return;
-      }
+    // 检查客户端是否提供了API密钥
+    const apiKey = requestData.apiKey;
+    if (!apiKey) {
+      res.status(400);
+      Object.keys(corsHeaders).forEach(key => {
+        res.setHeader(key, corsHeaders[key]);
+      });
+      res.json({ error: 'API密钥未提供，请在设置中配置API密钥' });
+      return;
+    }
 
       // Prepare request to Volcengine API
       const maxImages = requestData.maxImages || 3;
@@ -128,46 +135,47 @@ const handleImageGeneration = (req, res) => {
         }
       };
 
-      // Forward request to Volcengine API
-      const proxyReq = https.request(VOLCENGINE_API, options, (proxyRes) => {
-        // Set CORS headers and forward response headers
-        res.writeHead(proxyRes.statusCode, {
-          ...corsHeaders,
-          'Content-Type': proxyRes.headers['content-type'] || 'text/plain',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        });
+    // Forward request to Volcengine API
+    const proxyReq = https.request(VOLCENGINE_API, options, (proxyRes) => {
+      // Set CORS headers and forward response headers
+      res.status(proxyRes.statusCode);
+      Object.keys(corsHeaders).forEach(key => {
+        res.setHeader(key, corsHeaders[key]);
+      });
+      res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'text/plain');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
 
-        // Stream the response back to client
-        proxyRes.on('data', chunk => {
-          res.write(chunk);
-        });
-
-        proxyRes.on('end', () => {
-          res.end();
-        });
+      // Stream the response back to client
+      proxyRes.on('data', chunk => {
+        res.write(chunk);
       });
 
-      proxyReq.on('error', (error) => {
-        console.error('Proxy request error:', error);
-        res.writeHead(500, corsHeaders);
-        res.end(JSON.stringify({ error: 'Proxy request failed' }));
+      proxyRes.on('end', () => {
+        res.end();
       });
+    });
 
-      proxyReq.write(postData);
-      proxyReq.end();
+    proxyReq.on('error', (error) => {
+      console.error('Proxy request error:', error);
+      res.status(500);
+      Object.keys(corsHeaders).forEach(key => {
+        res.setHeader(key, corsHeaders[key]);
+      });
+      res.json({ error: 'Proxy request failed' });
+    });
 
-    } catch (error) {
-      console.error('Request parsing error:', error);
-      res.writeHead(400, corsHeaders);
-      res.end(JSON.stringify({ error: 'Invalid request body' }));
-    }
-  });
+    proxyReq.write(postData);
+    proxyReq.end();
+
+  } catch (error) {
+    console.error('Request parsing error:', error);
+    res.status(400);
+    Object.keys(corsHeaders).forEach(key => {
+      res.setHeader(key, corsHeaders[key]);
+    });
+    res.json({ error: 'Invalid request body' });
+  }
 };
 
-const server = http.createServer(handleRequest);
-
-server.listen(PORT, () => {
-  console.log(`🚀 Image generation proxy server running on http://localhost:${PORT}`);
-  console.log(`📡 Proxying requests to: ${VOLCENGINE_API}`);
-});
+// Vercel function - no server setup needed
