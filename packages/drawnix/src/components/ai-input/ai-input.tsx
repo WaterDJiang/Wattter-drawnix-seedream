@@ -178,7 +178,7 @@ export const AIInput: React.FC<AIInputProps> = ({
         const result = await api.generateImages(
           {
             prompt: currentPrompt,
-            maxImages: 1,
+            maxImages: 20, // 允许AI根据提示词自动决定生成数量，最多20张
             size: pixelSize,
             watermark: getCurrentWatermarkSetting(),
             ...(imageUrls.length > 0 && { image: imageUrls })

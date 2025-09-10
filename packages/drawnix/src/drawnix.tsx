@@ -267,7 +267,7 @@ async function handleImageToImageGeneration(
         apiKey: settings.apiKey,
         // 让豆包API自动判断是否需要生成多张图片
         sequential_image_generation: 'auto',
-        max_images: 10 // 设置最大限制，防止生成过多图片
+        max_images: 20 // 设置最大限制为20张，让AI自由决定
       },
       async (result) => {
         console.log('🎨 收到图生图结果:', result);

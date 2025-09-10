@@ -57,7 +57,7 @@ const handleImageGeneration = (req, res) => {
     }
 
       // Prepare request to Volcengine API
-      const maxImages = requestData.maxImages || 3;
+      const maxImages = requestData.maxImages || 20; // 默认最大20张，让AI自由决定生成数量
       const volcengineRequestData = {
         model: requestData.model || 'doubao-seedream-4-0-250828',
         prompt: requestData.prompt,
