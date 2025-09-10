@@ -175,7 +175,10 @@ export function calculateSizeFromAspectRatio(
  * 转换尺寸为API格式
  */
 export function formatSizeForAPI(size: { width: number; height: number }): string {
-  return `${size.width}x${size.height}`;
+  // 确保尺寸是整数，豆包API不接受小数
+  const width = Math.round(size.width);
+  const height = Math.round(size.height);
+  return `${width}x${height}`;
 }
 
 /**
@@ -260,6 +263,7 @@ export async function generateImageToImage(
   }
 
   console.log('🎨 发送图生图请求:', requestBody);
+  console.log('🎨 请求体JSON:', JSON.stringify(requestBody, null, 2));
 
   const response = await fetch(apiEndpoint, {
     method: 'POST',
@@ -270,7 +274,15 @@ export async function generateImageToImage(
   });
 
   if (!response.ok) {
-    throw new Error(`图生图API请求失败: ${response.status} ${response.statusText}`);
+    // 尝试读取错误响应内容
+    let errorText = '';
+    try {
+      errorText = await response.text();
+      console.error('🔥 API错误响应:', errorText);
+    } catch (e) {
+      console.error('🔥 无法读取错误响应');
+    }
+    throw new Error(`图生图API请求失败: ${response.status} ${response.statusText}. 响应: ${errorText}`);
   }
 
   const reader = response.body?.getReader();
