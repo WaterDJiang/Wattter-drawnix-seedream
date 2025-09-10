@@ -9,7 +9,7 @@ export interface ImageToImageDialogProps {
   selectedImages: PlaitElement[];
   position: { x: number; y: number };
   onClose: () => void;
-  onSubmit: (prompt: string, images: PlaitElement[]) => void;
+  onSubmit: (prompt: string, images: PlaitElement[]) => Promise<void>;
 }
 
 export const ImageToImageDialog: React.FC<ImageToImageDialogProps> = ({
@@ -62,11 +62,18 @@ export const ImageToImageDialog: React.FC<ImageToImageDialogProps> = ({
     };
   }, [onClose]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!prompt.trim() || isLoading) return;
-    
+
     setIsLoading(true);
-    onSubmit(prompt.trim(), selectedImages);
+    try {
+      await onSubmit(prompt.trim(), selectedImages);
+    } catch (error) {
+      console.error('图生图提交失败:', error);
+    } finally {
+      // 重置loading状态，以便下次使用
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {

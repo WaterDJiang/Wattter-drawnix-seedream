@@ -529,20 +529,23 @@ export const Drawnix: React.FC<DrawnixProps> = ({
                   imageToImageDialog: null
                 }))}
                 onSubmit={async (prompt, images) => {
-                  // 关闭对话框
-                  setAppState(prevState => ({
-                    ...prevState,
-                    imageToImageDialog: null
-                  }));
+                  // 保存选中的可渲染元素，因为对话框关闭后会丢失
+                  const selectedRenderableElements = appState.imageToImageDialog?.selectedRenderableElements;
 
-                  // 调用图生图处理函数
+                  // 先调用图生图处理函数
                   await handleImageToImageGeneration(
                     board,
                     prompt,
                     images,
                     appState,
-                    appState.imageToImageDialog?.selectedRenderableElements
+                    selectedRenderableElements
                   );
+
+                  // 处理完成后关闭对话框
+                  setAppState(prevState => ({
+                    ...prevState,
+                    imageToImageDialog: null
+                  }));
                 }}
               />
             )}
