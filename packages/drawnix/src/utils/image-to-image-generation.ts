@@ -240,7 +240,8 @@ export async function generateImageToImage(
   const requestBody: any = {
     model: "doubao-seedream-4-0-250828",
     prompt: request.prompt,
-    image: request.images, // 豆包API支持多图输入
+    // 豆包API：单图用字符串，多图用数组
+    image: request.images.length === 1 ? request.images[0] : request.images,
     size: request.size || "2K", // 豆包API支持 "2K" 或具体像素值
     response_format: "url",
     watermark: request.watermark || false,
@@ -248,14 +249,12 @@ export async function generateImageToImage(
     apiKey: request.apiKey
   };
 
-  // 添加组图生成参数
-  if (request.sequential_image_generation) {
-    requestBody.sequential_image_generation = request.sequential_image_generation;
-    if (request.max_images && request.max_images > 1) {
-      requestBody.sequential_image_generation_options = {
-        max_images: request.max_images
-      };
-    }
+  // 添加组图生成参数（只有在需要生成多图时才添加）
+  if (request.sequential_image_generation === 'auto' && request.max_images && request.max_images > 1) {
+    requestBody.sequential_image_generation = 'auto';
+    requestBody.sequential_image_generation_options = {
+      max_images: request.max_images
+    };
   }
 
   console.log('🎨 发送图生图请求:', requestBody);
