@@ -182,7 +182,7 @@ export const createImagePlaceholders = (
     const placeholderImageData = createPlaceholderImageData(
       dimensions.width,
       dimensions.height,
-      `Generating ${i + 1}/${count}`
+      `Generating...`
     );
 
     // 创建图片项
