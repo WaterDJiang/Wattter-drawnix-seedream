@@ -7,6 +7,9 @@ export interface ImageToImageRequest {
   size?: string;
   watermark?: boolean;
   apiKey: string;
+  // 组图生成参数
+  sequential_image_generation?: 'auto' | 'disabled';
+  max_images?: number; // 最大生成图片数量
 }
 
 export interface ImageToImageResponse {
@@ -176,6 +179,55 @@ export function formatSizeForAPI(size: { width: number; height: number }): strin
 }
 
 /**
+ * 分析提示词，判断是否需要生成多张图片
+ */
+export function analyzePromptForMultipleImages(prompt: string): { shouldGenerateMultiple: boolean; maxImages: number } {
+  const lowerPrompt = prompt.toLowerCase();
+
+  // 检查明确的数量词
+  const numberMatches = prompt.match(/(\d+)张|(\d+)个|(\d+)种|(\d+)幅/g);
+  if (numberMatches) {
+    const numbers = numberMatches.map(match => {
+      const num = match.match(/\d+/);
+      return num ? parseInt(num[0]) : 1;
+    });
+    const maxNum = Math.max(...numbers);
+    if (maxNum > 1 && maxNum <= 10) { // 限制最大10张
+      return { shouldGenerateMultiple: true, maxImages: maxNum };
+    }
+  }
+
+  // 检查风格词汇
+  const styleKeywords = [
+    '风格', '样式', '版本', '变体', '变化', '不同',
+    '玻璃', '素描', '塑料', '金属', '木质', '石材',
+    '卡通', '写实', '抽象', '油画', '水彩', '素描',
+    '早晨', '中午', '晚上', '春夏秋冬', '四季',
+    '红色', '蓝色', '绿色', '黄色', '紫色', '橙色'
+  ];
+
+  let styleCount = 0;
+  for (const keyword of styleKeywords) {
+    if (lowerPrompt.includes(keyword)) {
+      styleCount++;
+    }
+  }
+
+  // 如果包含多个风格关键词，建议生成多张
+  if (styleCount >= 2) {
+    return { shouldGenerateMultiple: true, maxImages: Math.min(styleCount, 5) };
+  }
+
+  // 检查列举词汇（用逗号、顿号分隔）
+  const listItems = prompt.split(/[，,、]/);
+  if (listItems.length >= 3) {
+    return { shouldGenerateMultiple: true, maxImages: Math.min(listItems.length, 6) };
+  }
+
+  return { shouldGenerateMultiple: false, maxImages: 1 };
+}
+
+/**
  * 调用图生图API
  */
 export async function generateImageToImage(
@@ -185,16 +237,26 @@ export async function generateImageToImage(
   const apiEndpoint = 'http://localhost:3001/generate-image';
 
   // 根据豆包Seedream API文档格式化请求
-  const requestBody = {
+  const requestBody: any = {
     model: "doubao-seedream-4-0-250828",
     prompt: request.prompt,
     image: request.images, // 豆包API支持多图输入
-    size: "2K", // 豆包API支持 "2K" 或具体像素值
+    size: request.size || "2K", // 豆包API支持 "2K" 或具体像素值
     response_format: "url",
-    watermark: false,
+    watermark: request.watermark || false,
     stream: true,
     apiKey: request.apiKey
   };
+
+  // 添加组图生成参数
+  if (request.sequential_image_generation) {
+    requestBody.sequential_image_generation = request.sequential_image_generation;
+    if (request.max_images && request.max_images > 1) {
+      requestBody.sequential_image_generation_options = {
+        max_images: request.max_images
+      };
+    }
+  }
 
   console.log('🎨 发送图生图请求:', requestBody);
 

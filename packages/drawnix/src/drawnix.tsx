@@ -46,7 +46,8 @@ import {
   getImageSize,
   getImageAspectRatio,
   calculateSizeFromAspectRatio,
-  formatSizeForAPI
+  formatSizeForAPI,
+  analyzePromptForMultipleImages
 } from './utils/image-to-image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from './utils/add-generated-image';
 
@@ -116,6 +117,10 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 图片URLs:', imageUrls);
 
+    // 分析提示词，判断是否需要生成多张图片
+    const promptAnalysis = analyzePromptForMultipleImages(prompt);
+    console.log('🎨 提示词分析结果:', promptAnalysis);
+
     // 计算占位符位置（在选中图片区域的右侧）
     const firstImageRect = RectangleClient.getRectangleByPoints(firstImage.points);
     const placeholderPosition: [number, number] = [
@@ -125,13 +130,14 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 占位符位置:', placeholderPosition);
 
-    // 创建占位符
+    // 创建占位符（根据分析结果决定数量）
+    const imageCount = promptAnalysis.shouldGenerateMultiple ? promptAnalysis.maxImages : 1;
     const placeholders = createImagePlaceholders(board, {
       position: placeholderPosition,
       spacing: 20,
       maxWidth: targetSize.width,
       aspectRatio: finalAspectRatio,
-      count: 1, // 每次生成一张图
+      count: imageCount,
       customWidth: targetSize.width,
       customHeight: targetSize.height
     });
@@ -153,7 +159,10 @@ async function handleImageToImageGeneration(
         images: imageUrls,
         size: apiSize,
         watermark: settings.watermarkEnabled,
-        apiKey: settings.apiKey
+        apiKey: settings.apiKey,
+        // 添加组图生成参数
+        sequential_image_generation: promptAnalysis.shouldGenerateMultiple ? 'auto' : 'disabled',
+        max_images: promptAnalysis.shouldGenerateMultiple ? promptAnalysis.maxImages : undefined
       },
       (result) => {
         console.log('🎨 收到图生图结果:', result);
