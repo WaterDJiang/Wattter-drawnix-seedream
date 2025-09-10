@@ -271,12 +271,13 @@ async function handleImageToImageGeneration(
           return; // 总数通知事件不需要替换图片
         }
 
-        // 如果还没有收到总数通知，但收到了第二张图片，也要创建占位符（兜底逻辑）
-        if (result.index === 1 && placeholders.length === 1) {
-          console.log(`🎨 兜底逻辑：检测到第2张图片，创建第2个占位符`);
+        // 通用兜底逻辑：确保有足够的占位符来容纳所有图片
+        while (result.index >= placeholders.length) {
+          const newIndex = placeholders.length;
+          console.log(`🎨 动态创建占位符：第${newIndex + 1}张图片需要占位符`);
 
           const newPosition: [number, number] = [
-            placeholderPosition[0] + 1 * (targetSize.width + 20),
+            placeholderPosition[0] + newIndex * (targetSize.width + 20),
             placeholderPosition[1]
           ];
 
@@ -292,7 +293,10 @@ async function handleImageToImageGeneration(
 
           if (newPlaceholders.length > 0) {
             placeholders.push(newPlaceholders[0]);
-            console.log(`🎨 兜底创建第2张图片的占位符`);
+            console.log(`✅ 成功创建第${newIndex + 1}张图片的占位符`);
+          } else {
+            console.error(`❌ 创建第${newIndex + 1}张图片的占位符失败`);
+            break; // 避免无限循环
           }
         }
 
