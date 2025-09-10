@@ -98,7 +98,13 @@ const handleImageGeneration = (req, res) => {
       };
 
     // Forward request to Volcengine API
+    console.log('🚀 发送请求到豆包API:', VOLCENGINE_API);
+    console.log('🚀 请求数据:', JSON.stringify(volcengineRequestData, null, 2));
+
     const proxyReq = https.request(VOLCENGINE_API, options, (proxyRes) => {
+      console.log('🚀 豆包API响应状态:', proxyRes.statusCode);
+      console.log('🚀 豆包API响应头:', proxyRes.headers);
+
       // Set CORS headers and forward response headers
       res.status(proxyRes.statusCode);
       Object.keys(corsHeaders).forEach(key => {
@@ -108,23 +114,56 @@ const handleImageGeneration = (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      // 如果状态码不是200，收集错误信息
+      if (proxyRes.statusCode !== 200) {
+        let errorData = '';
+        proxyRes.on('data', chunk => {
+          errorData += chunk.toString();
+        });
+        proxyRes.on('end', () => {
+          console.error('🚨 豆包API错误响应:', errorData);
+          res.write(errorData);
+          res.end();
+        });
+        return;
+      }
+
       // Stream the response back to client
       proxyRes.on('data', chunk => {
         res.write(chunk);
       });
 
       proxyRes.on('end', () => {
+        console.log('🚀 豆包API响应完成');
         res.end();
       });
     });
 
     proxyReq.on('error', (error) => {
-      console.error('Proxy request error:', error);
+      console.error('🚨 代理请求错误:', error);
+      console.error('🚨 错误详情:', error.message, error.code, error.stack);
       res.status(500);
       Object.keys(corsHeaders).forEach(key => {
         res.setHeader(key, corsHeaders[key]);
       });
-      res.json({ error: 'Proxy request failed' });
+      res.json({
+        error: 'Proxy request failed',
+        details: error.message,
+        code: error.code
+      });
+    });
+
+    // 设置超时处理
+    proxyReq.setTimeout(25000, () => {
+      console.error('🚨 请求超时');
+      proxyReq.destroy();
+      if (!res.headersSent) {
+        res.status(500);
+        Object.keys(corsHeaders).forEach(key => {
+          res.setHeader(key, corsHeaders[key]);
+        });
+        res.json({ error: 'Request timeout' });
+      }
     });
 
     proxyReq.write(postData);
