@@ -262,7 +262,7 @@ async function handleImageToImageGeneration(
         sequential_image_generation: 'auto',
         max_images: 10 // 设置最大限制，防止生成过多图片
       },
-      (result) => {
+      async (result) => {
         console.log('🎨 收到图生图结果:', result);
 
         // 如果是总数通知事件（index=-1），立即创建所有需要的占位符
