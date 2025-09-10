@@ -25,6 +25,7 @@
     "browser-fs-access": "^0.35.0",
     "classnames": "^2.5.1",
     "localforage": "^1.10.0",
+    "lucide-react": "^0.543.0",
     "mobile-detect": "^1.4.5",
     "open-color": "^1.9.1",
     "react": "18.3.1",

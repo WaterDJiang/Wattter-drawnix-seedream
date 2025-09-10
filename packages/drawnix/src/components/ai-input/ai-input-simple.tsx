@@ -3,7 +3,7 @@ import { Island } from '../island';
 import classNames from 'classnames';
 import { useI18n } from '../../i18n';
 import { ToolButton } from '../tool-button';
-import { SendIcon } from '../icons';
+import { Send as SendIcon } from 'lucide-react';
 import './ai-input.scss';
 
 export interface AIInputProps {

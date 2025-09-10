@@ -4,7 +4,7 @@ import { Island } from '../island';
 import classNames from 'classnames';
 import { useI18n } from '../../i18n';
 import { ToolButton } from '../tool-button';
-import { SendIcon } from '../icons';
+// import { SendIcon } from '../icons'; // 使用 lucide-react 的 Send 图标
 import { Paperclip, Send, X, Image, Sparkles, ChevronDown } from 'lucide-react';
 import { useBoard } from '@plait-board/react-board';
 import { PlaitElement, getSelectedElements } from '@plait/core';
@@ -138,7 +138,7 @@ export const AIInput: React.FC<AIInputProps> = ({
 
       let placeholders: PlaitElement[] = [];
       try {
-        placeholders = createImagePlaceholders(board, { ...options, count: 1 });
+        placeholders = await createImagePlaceholders(board, { ...options, count: 1 });
         console.error('🚀 [DEBUG] createImagePlaceholders 返回了:', placeholders);
       } catch (error) {
         console.error('🚀 [DEBUG] createImagePlaceholders 抛出错误:', error);

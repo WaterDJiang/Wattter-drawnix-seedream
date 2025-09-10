@@ -54,12 +54,12 @@ export type DrawnixState = {
 
 export const DrawnixContext = createContext<{
   appState: DrawnixState;
-  setAppState: (appState: DrawnixState) => void;
+  setAppState: (appState: DrawnixState | ((prevState: DrawnixState) => DrawnixState)) => void;
 } | null>(null);
 
 export const useDrawnix = (): {
   appState: DrawnixState;
-  setAppState: (appState: DrawnixState) => void;
+  setAppState: (appState: DrawnixState | ((prevState: DrawnixState) => DrawnixState)) => void;
 } => {
   const context = useContext(DrawnixContext);
 

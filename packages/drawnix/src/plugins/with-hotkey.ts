@@ -65,6 +65,10 @@ export const buildDrawnixHotkeyPlugin = (
         if (imageElements.length > 0 || renderableElements.length > 0) {
           // 计算对话框位置（选中元素的下方20px）
           const referenceElement = imageElements[0] || renderableElements[0];
+          if (!referenceElement.points) {
+            console.warn('⚠️ 参考元素没有points属性，使用默认位置');
+            return;
+          }
           const rect = RectangleClient.getRectangleByPoints(referenceElement.points);
 
           // 将画布坐标转换为屏幕坐标

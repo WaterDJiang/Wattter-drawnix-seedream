@@ -165,6 +165,7 @@ async function handleImageToImageGeneration(
 
     // 按照画布位置（从左到右，从上到下）对选中图片进行排序
     const sortedImages = [...selectedImages].sort((a, b) => {
+      if (!a.points || !b.points) return 0;
       const rectA = RectangleClient.getRectangleByPoints(a.points);
       const rectB = RectangleClient.getRectangleByPoints(b.points);
 
@@ -179,6 +180,7 @@ async function handleImageToImageGeneration(
     });
 
     console.log('🔍 选中图片的原始顺序:', selectedImages.map((img, index) => {
+      if (!img.points) return { index, id: img.id, position: { x: 0, y: 0 }, url: 'no-points' };
       const rect = RectangleClient.getRectangleByPoints(img.points);
       return {
         index,
@@ -189,6 +191,7 @@ async function handleImageToImageGeneration(
     }));
 
     console.log('🔍 排序后的图片顺序:', sortedImages.map((img, index) => {
+      if (!img.points) return { index, id: img.id, position: { x: 0, y: 0 }, url: 'no-points' };
       const rect = RectangleClient.getRectangleByPoints(img.points);
       return {
         index,
@@ -221,6 +224,10 @@ async function handleImageToImageGeneration(
       return;
     }
 
+    if (!referenceElement.points) {
+      console.error('❌ 参考元素没有points属性');
+      return;
+    }
     const referenceRect = RectangleClient.getRectangleByPoints(referenceElement.points);
     const placeholderPosition: [number, number] = [
       referenceRect.x + referenceRect.width + 20, // 右侧20px间距
@@ -336,9 +343,8 @@ async function handleImageToImageGeneration(
 
           // 使用replacePlaceholderWithImage函数来替换占位符
           replacePlaceholderWithImage(board, placeholder, {
+            index: result.index,
             url: result.url,
-            width: displayWidth,
-            height: displayHeight,
             size: result.size
           });
 
@@ -416,8 +422,6 @@ export const Drawnix: React.FC<DrawnixProps> = ({
     hideScrollbar: false,
     disabledScrollOnNonFocus: false,
     themeColors: MindThemeColors,
-    // 修复高DPI屏幕缩放问题
-    pixelRatio: window.devicePixelRatio,
   };
 
   const [appState, setAppState] = useState<DrawnixState>(() => {
@@ -515,7 +519,7 @@ export const Drawnix: React.FC<DrawnixProps> = ({
               }}
               initialSettings={loadSettings()}
             />
-            {appState.imageToImageDialog?.isOpen && (
+            {appState.imageToImageDialog?.isOpen && board && (
               <ImageToImageDialog
                 board={board}
                 selectedImages={appState.imageToImageDialog.selectedImages}
@@ -532,15 +536,13 @@ export const Drawnix: React.FC<DrawnixProps> = ({
                   }));
 
                   // 调用图生图处理函数
-                  if (board) {
-                    await handleImageToImageGeneration(
-                      board,
-                      prompt,
-                      images,
-                      appState,
-                      appState.imageToImageDialog?.selectedRenderableElements
-                    );
-                  }
+                  await handleImageToImageGeneration(
+                    board,
+                    prompt,
+                    images,
+                    appState,
+                    appState.imageToImageDialog?.selectedRenderableElements
+                  );
                 }}
               />
             )}
