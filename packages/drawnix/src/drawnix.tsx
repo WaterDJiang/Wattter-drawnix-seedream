@@ -131,7 +131,9 @@ async function handleImageToImageGeneration(
       spacing: 20,
       maxWidth: targetSize.width,
       aspectRatio: finalAspectRatio,
-      count: 1 // 每次生成一张图
+      count: 1, // 每次生成一张图
+      customWidth: targetSize.width,
+      customHeight: targetSize.height
     });
 
     if (placeholders.length === 0) {
@@ -165,7 +167,8 @@ async function handleImageToImageGeneration(
           replacePlaceholderWithImage(board, placeholder, {
             url: result.url,
             width,
-            height
+            height,
+            size: result.size
           });
 
           console.log('✅ 成功替换占位符为真实图片:', result.url);

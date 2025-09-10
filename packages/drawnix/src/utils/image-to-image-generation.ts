@@ -19,12 +19,28 @@ export interface ImageToImageResponse {
  * 获取图片元素的URL
  */
 export function getImageUrl(imageElement: PlaitElement): string | null {
-  if (!PlaitDrawElement.isImage(imageElement)) {
-    return null;
-  }
-  
+  console.log('🔍 检查图片元素:', imageElement);
+  console.log('🔍 元素类型:', (imageElement as any).type);
+  console.log('🔍 是否为图片:', PlaitDrawElement.isImage(imageElement));
+
+  // 更宽松的检查：直接检查是否有imageItem
   const imageItem = (imageElement as any).imageItem;
-  return imageItem?.url || null;
+  console.log('🔍 imageItem:', imageItem);
+
+  if (imageItem?.url) {
+    console.log('🔍 找到图片URL:', imageItem.url);
+    return imageItem.url;
+  }
+
+  // 备用检查：直接检查url属性
+  const directUrl = (imageElement as any).url;
+  if (directUrl) {
+    console.log('🔍 找到直接URL:', directUrl);
+    return directUrl;
+  }
+
+  console.log('🔍 未找到图片URL');
+  return null;
 }
 
 /**
@@ -129,14 +145,17 @@ export async function generateImageToImage(
   onProgress?: (response: ImageToImageResponse) => void
 ): Promise<ImageToImageResponse[]> {
   const apiEndpoint = 'http://localhost:3001/generate-image';
-  
+
+  // 根据豆包Seedream API文档格式化请求
   const requestBody = {
+    model: "doubao-seedream-4-0-250828",
     prompt: request.prompt,
     image: request.images, // 豆包API支持多图输入
-    size: request.size || '1024x1024',
-    watermark: request.watermark || false,
-    apiKey: request.apiKey,
-    maxImages: 1 // 每次生成一张图
+    size: request.size || "2K",
+    response_format: "url",
+    watermark: false,
+    stream: true,
+    apiKey: request.apiKey
   };
 
   console.log('🎨 发送图生图请求:', requestBody);
