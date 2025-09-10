@@ -44,7 +44,9 @@ export class FreehandComponent
   initialize(): void {
     super.initialize();
     this.initializeGenerator();
-    this.generator.processDrawing(this.element, this.getElementG());
+    if (this.generator) {
+      this.generator.processDrawing(this.element, this.getElementG());
+    }
   }
 
   onContextChanged(
@@ -52,17 +54,10 @@ export class FreehandComponent
     previous: PlaitPluginElementContext<Freehand, PlaitBoard>
   ) {
     if (value.element !== previous.element || value.hasThemeChanged) {
-      this.generator.processDrawing(this.element, this.getElementG());
-      this.activeGenerator.processDrawing(
-        this.element,
-        PlaitBoard.getActiveHost(this.board),
-        {
-          selected: this.selected,
-        }
-      );
-    } else {
-      const needUpdate = value.selected !== previous.selected;
-      if (needUpdate || value.selected) {
+      if (this.generator) {
+        this.generator.processDrawing(this.element, this.getElementG());
+      }
+      if (this.activeGenerator) {
         this.activeGenerator.processDrawing(
           this.element,
           PlaitBoard.getActiveHost(this.board),
@@ -70,6 +65,19 @@ export class FreehandComponent
             selected: this.selected,
           }
         );
+      }
+    } else {
+      const needUpdate = value.selected !== previous.selected;
+      if (needUpdate || value.selected) {
+        if (this.activeGenerator) {
+          this.activeGenerator.processDrawing(
+            this.element,
+            PlaitBoard.getActiveHost(this.board),
+            {
+              selected: this.selected,
+            }
+          );
+        }
       }
     }
   }

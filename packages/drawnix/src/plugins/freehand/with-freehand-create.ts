@@ -92,10 +92,12 @@ export const withFreehandCreate = (board: PlaitBoard) => {
         points.push(newPoint);
         const pointer = PlaitBoard.getPointer(board) as FreehandShape;
         temporaryElement = createFreehandElement(pointer, points);
-        generator.processDrawing(
-          temporaryElement,
-          PlaitBoard.getElementTopHost(board)
-        );
+        if (generator) {
+          generator.processDrawing(
+            temporaryElement,
+            PlaitBoard.getElementTopHost(board)
+          );
+        }
       }
       return;
     }
