@@ -143,9 +143,44 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 目标尺寸:', { targetSize, apiSize, pixels: targetSize.width * targetSize.height });
 
-    // 获取选中图片的URLs
+    // 按照画布位置（从左到右，从上到下）对选中图片进行排序
+    const sortedImages = [...selectedImages].sort((a, b) => {
+      const rectA = RectangleClient.getRectangleByPoints(a.points);
+      const rectB = RectangleClient.getRectangleByPoints(b.points);
+
+      // 首先按Y坐标排序（从上到下）
+      const yDiff = rectA.y - rectB.y;
+      if (Math.abs(yDiff) > 50) { // 如果Y坐标差距超过50px，认为是不同行
+        return yDiff;
+      }
+
+      // 如果在同一行，按X坐标排序（从左到右）
+      return rectA.x - rectB.x;
+    });
+
+    console.log('🔍 选中图片的原始顺序:', selectedImages.map((img, index) => {
+      const rect = RectangleClient.getRectangleByPoints(img.points);
+      return {
+        index,
+        id: img.id,
+        position: { x: rect.x, y: rect.y },
+        url: getImageUrl(img)?.substring(0, 50) + '...'
+      };
+    }));
+
+    console.log('🔍 排序后的图片顺序:', sortedImages.map((img, index) => {
+      const rect = RectangleClient.getRectangleByPoints(img.points);
+      return {
+        index,
+        id: img.id,
+        position: { x: rect.x, y: rect.y },
+        url: getImageUrl(img)?.substring(0, 50) + '...'
+      };
+    }));
+
+    // 获取排序后图片的URLs
     const imageUrls: string[] = [];
-    for (const image of selectedImages) {
+    for (const image of sortedImages) {
       const url = getImageUrl(image);
       if (url) {
         imageUrls.push(url);
@@ -157,7 +192,7 @@ async function handleImageToImageGeneration(
       return;
     }
 
-    console.log('🎨 图片URLs:', imageUrls);
+    console.log('🎨 图片URLs顺序:', imageUrls.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
 
     // 计算占位符位置（在选中图片区域的右侧）
     const firstImage = selectedImages[0];

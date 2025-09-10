@@ -92,12 +92,20 @@ const handleImageGeneration = (req, res) => {
       const volcengineRequestData = {
         model: requestData.model || 'doubao-seedream-4-0-250828',
         prompt: requestData.prompt,
-        ...(requestData.image && { image: requestData.image }),
         response_format: 'url',
         size: requestData.size || '2K',
         stream: true,
         watermark: requestData.watermark !== false
       };
+
+      // 处理图片参数（支持单图和多图）
+      if (requestData.image) {
+        volcengineRequestData.image = requestData.image;
+        console.log('🎨 API代理：处理图生图请求，图片数量:', Array.isArray(requestData.image) ? requestData.image.length : 1);
+        if (Array.isArray(requestData.image)) {
+          console.log('🎨 API代理：图片顺序:', requestData.image.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
+        }
+      }
 
       // 根据生成图片数量决定是否启用序列生成
       if (maxImages > 1) {
