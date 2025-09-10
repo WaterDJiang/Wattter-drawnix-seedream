@@ -1,4 +1,4 @@
-import { PlaitBoard, PlaitElement, RectangleClient, toImage } from '@plait/core';
+import { PlaitBoard, PlaitElement } from '@plait/core';
 import { PlaitDrawElement } from '@plait/draw';
 import { Freehand } from '../plugins/freehand/type';
 
@@ -33,23 +33,12 @@ export async function renderElementsToImage(
     throw new Error('没有元素需要渲染');
   }
 
-  console.log('🎨 开始渲染元素为图片:', elements.map(el => ({
-    id: el.id,
-    type: el.type || 'unknown',
-    isFreehand: Freehand.isFreehand(el),
-    isDrawElement: PlaitDrawElement.isDrawElement(el),
-    isImage: PlaitDrawElement.isImage(el)
-  })));
-
-  // 计算所有元素的边界框
-  const boundingBox = calculateBoundingBox(elements);
-  console.log('📐 计算的边界框:', boundingBox);
+  console.log('🎨 开始渲染元素为图片 (简化实现):', elements.length, '个元素');
 
   try {
-    // 暂时使用一个简化的实现：创建一个占位符图片
-    // TODO: 实现真正的元素渲染功能
-    const placeholderImageUrl = await createPlaceholderImage(boundingBox);
-    console.log('✅ 创建占位符图片完成');
+    // 使用简化的占位符实现，避免任何可能的副作用
+    const placeholderImageUrl = createSimplePlaceholderImage();
+    console.log('✅ 创建简化占位符图片完成');
 
     return placeholderImageUrl;
   } catch (error) {
@@ -59,86 +48,24 @@ export async function renderElementsToImage(
 }
 
 /**
- * 创建一个占位符图片（临时实现）
+ * 创建一个简化的占位符图片
  */
-async function createPlaceholderImage(boundingBox: { width: number; height: number }): Promise<string> {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+function createSimplePlaceholderImage(): string {
+  // 创建一个简单的SVG占位符，避免使用Canvas
+  const svg = `
+    <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+      <rect width="200" height="150" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/>
+      <text x="100" y="75" text-anchor="middle" font-family="Arial" font-size="14" fill="#666">
+        渲染的元素
+      </text>
+    </svg>
+  `;
 
-  if (!ctx) {
-    throw new Error('无法创建Canvas上下文');
-  }
-
-  // 设置画布尺寸
-  canvas.width = Math.max(boundingBox.width, 100);
-  canvas.height = Math.max(boundingBox.height, 100);
-
-  // 绘制一个简单的占位符
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = '#666';
-  ctx.font = '16px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('渲染的元素', canvas.width / 2, canvas.height / 2);
-
-  // 转换为base64
-  return canvas.toDataURL('image/png');
+  // 转换为base64 data URL
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
-/**
- * 计算多个元素的边界框
- */
-function calculateBoundingBox(elements: PlaitElement[]): {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-} {
-  if (elements.length === 0) {
-    return { x: 0, y: 0, width: 0, height: 0 };
-  }
 
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  elements.forEach(element => {
-    const rect = RectangleClient.getRectangleByPoints(element.points);
-    minX = Math.min(minX, rect.x);
-    minY = Math.min(minY, rect.y);
-    maxX = Math.max(maxX, rect.x + rect.width);
-    maxY = Math.max(maxY, rect.y + rect.height);
-  });
-
-  // 添加一些边距
-  const padding = 10;
-  return {
-    x: minX - padding,
-    y: minY - padding,
-    width: maxX - minX + 2 * padding,
-    height: maxY - minY + 2 * padding
-  };
-}
-
-/**
- * 将Blob转换为base64 URL
- */
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result);
-      } else {
-        reject(new Error('Failed to convert blob to base64'));
-      }
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
 
 /**
  * 分离选中元素为图片和非图片元素
