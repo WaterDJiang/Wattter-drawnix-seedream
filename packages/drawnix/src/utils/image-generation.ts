@@ -40,15 +40,17 @@ export class ImageGenerationAPI {
     request: ImageGenerationRequest,
     onProgress?: (result: ImageGenerationResult) => void
   ): Promise<ImageGenerationResponse> {
-    const { prompt, image, maxImages = 3, size = '2K', watermark = true } = request;
+    const { prompt, image, maxImages = 3, size, watermark = true } = request;
 
     const requestBody = {
       prompt,
       ...(image && { image }),
       maxImages,
-      size,
+      size: size || '2K', // 使用传入的size，如果没有则默认为2K
       watermark,
     };
+
+    console.log('Sending image generation request with size:', size, 'requestBody:', requestBody);
 
     try {
       const response = await fetch(this.config.endpoint!, {

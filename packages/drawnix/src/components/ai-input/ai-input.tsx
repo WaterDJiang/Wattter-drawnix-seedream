@@ -98,11 +98,13 @@ export const AIInput: React.FC<AIInputProps> = ({
         }
 
         // Call image generation API  
+        const pixelSize = convertAspectRatioToPixelSize(selectedRatio);
+        console.log('Selected ratio:', selectedRatio, 'Converted to pixel size:', pixelSize);
         const result = await imageGenerationAPI.generateImages(
           {
             prompt: currentPrompt,
             maxImages: 1,
-            size: '2K',
+            size: pixelSize,
             watermark: true,
             ...(imageUrls.length > 0 && { image: imageUrls })
           },
@@ -169,6 +171,38 @@ export const AIInput: React.FC<AIInputProps> = ({
       reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(file);
     });
+  };
+
+  // 将宽高比转换为2K分辨率的具体像素尺寸
+  const convertAspectRatioToPixelSize = (aspectRatio: string): string => {
+    if (aspectRatio === 'auto') {
+      return '2K'; // 让AI自动决定
+    }
+    
+    const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+    if (!widthRatio || !heightRatio) {
+      return '2K';
+    }
+    
+    // 基于2K分辨率计算具体像素
+    const baseResolution = 2048;
+    let width: number, height: number;
+    
+    if (widthRatio >= heightRatio) {
+      // 横版或正方形：长边为2048
+      width = baseResolution;
+      height = Math.round((heightRatio / widthRatio) * baseResolution);
+    } else {
+      // 竖版：短边基于长边计算
+      height = baseResolution;
+      width = Math.round((widthRatio / heightRatio) * baseResolution);
+    }
+    
+    // 确保像素值是8的倍数（AI生成图片的常见要求）
+    width = Math.round(width / 8) * 8;
+    height = Math.round(height / 8) * 8;
+    
+    return `${width}x${height}`;
   };
 
   const aspectRatios = [

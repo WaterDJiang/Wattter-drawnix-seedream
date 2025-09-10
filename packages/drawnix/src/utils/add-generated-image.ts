@@ -24,7 +24,9 @@ export const loadImageInfo = async (url: string): Promise<{width: number, height
       // 如果跨域失败，使用默认尺寸
       resolve({ width: 400, height: 300 });
     };
-    image.src = url;
+    // 使用代理URL来避免CORS问题
+    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(url)}`;
+    image.src = proxyUrl;
   });
 };
 
@@ -117,21 +119,9 @@ export const createImagePlaceholders = (
     );
     
     if (placeholder) {
-      // 设置为实心矩形，使用浅灰色边框和淡蓝色填充
-      try {
-        const element = placeholder;
-        element.stroke = '#e2e8f0'; // 浅灰色边框
-        element.strokeWidth = 1;
-        element.fill = '#f8fafc'; // 极淡蓝色填充
-        element.opacity = 0.9;
-        element.strokeLineDash = undefined; // 移除虚线
-        
-        // 添加loading动画效果
-        startPlaceholderAnimation(board, element);
-      } catch (error) {
-        console.log('无法设置占位符样式:', error);
-      }
+      // 直接将占位符添加到数组
       placeholders.push(placeholder);
+      console.log('成功创建占位符:', placeholder);
     }
   }
   
@@ -139,56 +129,11 @@ export const createImagePlaceholders = (
 };
 
 /**
- * 为占位符添加颜色渐变动画
+ * 为占位符添加颜色渐变动画（暂时禁用）
  */
 const startPlaceholderAnimation = (board: PlaitBoard, element: PlaitElement) => {
-  // 动画颜色序列 - 从浅到稍深的蓝灰色调
-  const fillColors = [
-    '#f8fafc', // 极淡蓝灰
-    '#f1f5f9', // 浅蓝灰  
-    '#e2e8f0', // 中浅蓝灰
-    '#cbd5e1', // 中蓝灰
-    '#e2e8f0', // 回到中浅
-    '#f1f5f9', // 回到浅
-  ];
-  
-  const strokeColors = [
-    '#e2e8f0', // 浅灰
-    '#cbd5e1', // 中浅灰
-    '#94a3b8', // 中灰
-    '#64748b', // 深灰
-    '#94a3b8', // 回到中灰
-    '#cbd5e1', // 回到中浅灰
-  ];
-  
-  let animationIndex = 0;
-  const animationInterval = 500; // 500ms切换一次颜色
-  
-  const animate = () => {
-    try {
-      if (element && element.stroke !== undefined) {
-        element.fill = fillColors[animationIndex];
-        element.stroke = strokeColors[animationIndex];
-        animationIndex = (animationIndex + 1) % fillColors.length;
-        
-        // 触发重绘
-        board.apply({
-          type: 'set_node',
-          path: [], // 需要实际的path
-          properties: {},
-          newProperties: {}
-        });
-      }
-    } catch (error) {
-      console.log('动画更新失败:', error);
-    }
-  };
-  
-  // 启动动画
-  const timer = setInterval(animate, animationInterval);
-  
-  // 保存timer引用用于清理（实际项目中可能需要更好的清理机制）
-  (element as any)._animationTimer = timer;
+  // 暂时禁用动画以确保基本功能正常工作
+  console.log('占位符动画已禁用');
 };
 
 /**
