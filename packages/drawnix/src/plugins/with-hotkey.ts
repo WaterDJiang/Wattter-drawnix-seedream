@@ -13,7 +13,7 @@ import { saveAsJSON } from '../data/json';
 import { DrawnixState } from '../hooks/use-drawnix';
 import { BoardCreationMode, setCreationMode } from '@plait/common';
 import { MindPointerType } from '@plait/mind';
-import { FreehandShape } from './freehand/type';
+import { FreehandShape, Freehand } from './freehand/type';
 import { ArrowLineShape, BasicShapes, PlaitDrawElement } from '@plait/draw';
 import { separateSelectedElements } from '../utils/render-elements-to-image';
 
@@ -29,6 +29,7 @@ export const buildDrawnixHotkeyPlugin = (
 
       // Tab键：图生图功能 - 放在条件判断之外
       if (event.key === 'Tab' && !isTypingNormal) {
+        console.log('🔍 Tab键被按下，开始检测选中元素');
         // 检查是否已经有图生图对话框打开
         const currentState = (board as any).appState;
         if (currentState?.imageToImageDialog?.isOpen) {
@@ -41,6 +42,14 @@ export const buildDrawnixHotkeyPlugin = (
         }
 
         const selectedElements = getSelectedElements(board);
+        console.log('🔍 当前选中元素数量:', selectedElements.length);
+        console.log('🔍 选中元素详情:', selectedElements.map(el => ({
+          id: el.id,
+          type: (el as any).type,
+          isFreehand: Freehand.isFreehand(el),
+          isDrawElement: PlaitDrawElement.isDrawElement(el),
+          isImage: PlaitDrawElement.isImage(el)
+        })));
 
         // 分离选中的元素：图片和可渲染元素
         const { imageElements, renderableElements } = separateSelectedElements(selectedElements);
