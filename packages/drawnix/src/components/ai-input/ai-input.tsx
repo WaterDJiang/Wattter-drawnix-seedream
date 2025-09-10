@@ -82,11 +82,12 @@ export const AIInput: React.FC<AIInputProps> = ({
       const options = {
         position: [400, 300] as [number, number],
         spacing: 320,
-        maxWidth: 300
+        maxWidth: 300,
+        aspectRatio: selectedRatio
       };
       
       // 立即创建占位符
-      const placeholders = createImagePlaceholders(board, 3, options);
+      const placeholders = createImagePlaceholders(board, 1, options);
       
       try {
         // 转换上传的图片为 data URLs
@@ -100,8 +101,8 @@ export const AIInput: React.FC<AIInputProps> = ({
         const result = await imageGenerationAPI.generateImages(
           {
             prompt: currentPrompt,
-            maxImages: 3,
-            size: selectedRatio === 'auto' ? '2K' : selectedRatio,
+            maxImages: 1,
+            size: '2K',
             watermark: true,
             ...(imageUrls.length > 0 && { image: imageUrls })
           },
@@ -134,8 +135,8 @@ export const AIInput: React.FC<AIInputProps> = ({
         
         // 清理占位符
         try {
-          const { DrawTransforms } = await import('@plait/draw');
-          DrawTransforms.removeElements(board, placeholders);
+          const { CoreTransforms } = await import('@plait/core');
+          CoreTransforms.removeElements(board, placeholders);
         } catch (cleanupError) {
           console.error('Failed to cleanup placeholders:', cleanupError);
         }

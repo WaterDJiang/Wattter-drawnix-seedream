@@ -15,7 +15,7 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': true
 };
 
-const server = http.createServer((req, res) => {
+const handleRequest = (req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(200, corsHeaders);
@@ -23,12 +23,52 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Only handle POST requests to /generate-image
-  if (req.method !== 'POST' || req.url !== '/generate-image') {
-    res.writeHead(404, corsHeaders);
-    res.end('Not Found');
+  // Handle POST requests to /generate-image
+  if (req.method === 'POST' && req.url === '/generate-image') {
+    handleImageGeneration(req, res);
     return;
   }
+
+  // Handle GET requests for image proxy
+  if (req.method === 'GET' && req.url.startsWith('/image-proxy')) {
+    handleImageProxy(req, res);
+    return;
+  }
+
+  res.writeHead(404, corsHeaders);
+  res.end('Not Found');
+}
+
+const handleImageProxy = (req, res) => {
+  const urlParam = new URLSearchParams(req.url.split('?')[1]);
+  const imageUrl = urlParam.get('url');
+  
+  if (!imageUrl) {
+    res.writeHead(400, corsHeaders);
+    res.end('Missing url parameter');
+    return;
+  }
+
+  // Proxy the image
+  const imageReq = https.request(imageUrl, (imageRes) => {
+    res.writeHead(200, {
+      ...corsHeaders,
+      'Content-Type': imageRes.headers['content-type'] || 'image/jpeg',
+      'Cache-Control': 'public, max-age=86400'
+    });
+    imageRes.pipe(res);
+  });
+
+  imageReq.on('error', (error) => {
+    console.error('Image proxy error:', error);
+    res.writeHead(500, corsHeaders);
+    res.end('Failed to fetch image');
+  });
+
+  imageReq.end();
+};
+
+const handleImageGeneration = (req, res) => {
 
   let body = '';
   req.on('data', chunk => {
@@ -98,7 +138,9 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: 'Invalid request body' }));
     }
   });
-});
+};
+
+const server = http.createServer(handleRequest);
 
 server.listen(PORT, () => {
   console.log(`🚀 Image generation proxy server running on http://localhost:${PORT}`);

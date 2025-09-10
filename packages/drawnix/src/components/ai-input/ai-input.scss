@@ -836,3 +836,54 @@ $control-height: 48px;
     }
   }
 }
+
+// 占位符loading动画 - 针对SVG元素的样式
+@keyframes placeholderFillPulse {
+  0% { 
+    fill: rgba(240, 249, 255, 0.6); /* 淡蓝色 */
+    stroke: #e5e7eb; /* 浅灰色 */
+    opacity: 0.7;
+  }
+  50% { 
+    fill: rgba(59, 130, 246, 0.1); /* 更深的蓝色 */
+    stroke: #9ca3af; /* 中灰色 */
+    opacity: 0.9;
+  }
+  100% { 
+    fill: rgba(240, 249, 255, 0.6); /* 回到淡蓝色 */
+    stroke: #e5e7eb; /* 浅灰色 */
+    opacity: 0.7;
+  }
+}
+
+// SVG几何元素的动画
+@keyframes svgPlaceholderGradient {
+  0% { 
+    fill: #f8fafc; /* 极淡灰蓝 */
+    stroke: #e2e8f0; /* 浅灰 */
+  }
+  33% { 
+    fill: #eff6ff; /* 淡蓝 */
+    stroke: #cbd5e1; /* 中浅灰 */
+  }
+  66% { 
+    fill: #dbeafe; /* 蓝色调 */
+    stroke: #94a3b8; /* 中灰 */
+  }
+  100% { 
+    fill: #f8fafc; /* 回到起始颜色 */
+    stroke: #e2e8f0; /* 浅灰 */
+  }
+}
+
+// 应用到画布上的几何元素
+[data-element-type="geometry"][data-shape="rectangle"] {
+  animation: svgPlaceholderGradient 3s ease-in-out infinite !important;
+}
+
+// 为占位符添加专门的动画类
+.placeholder-loading-animation {
+  animation: svgPlaceholderGradient 2.5s ease-in-out infinite !important;
+  fill-opacity: 0.8 !important;
+  stroke-width: 1 !important;
+}

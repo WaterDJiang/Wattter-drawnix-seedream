@@ -1,5 +1,5 @@
-import { PlaitBoard, Point, PlaitElement } from '@plait/core';
-import { DrawTransforms, DrawElement } from '@plait/draw';
+import { PlaitBoard, Point, PlaitElement, Transforms } from '@plait/core';
+import { DrawTransforms, BasicShapes } from '@plait/draw';
 import { loadHTMLImageElement, buildImage } from '../data/image';
 import { ImageGenerationResult } from './image-generation';
 
@@ -7,6 +7,7 @@ export interface AddGeneratedImageOptions {
   position?: Point;
   maxWidth?: number;
   spacing?: number;
+  aspectRatio?: string;
 }
 
 /**
@@ -28,6 +29,26 @@ export const loadImageInfo = async (url: string): Promise<{width: number, height
 };
 
 /**
+ * 计算基于宽高比的尺寸
+ */
+const calculateDimensionsFromAspectRatio = (aspectRatio: string, maxWidth: number): {width: number, height: number} => {
+  if (aspectRatio === 'auto') {
+    return { width: maxWidth, height: maxWidth * 0.75 }; // 默认4:3比例
+  }
+  
+  const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+  if (!widthRatio || !heightRatio) {
+    return { width: maxWidth, height: maxWidth * 0.75 };
+  }
+  
+  const ratio = heightRatio / widthRatio;
+  return {
+    width: maxWidth,
+    height: maxWidth * ratio
+  };
+};
+
+/**
  * 在画布上添加单张生成的图片
  */
 export const addGeneratedImageToBoard = async (
@@ -45,9 +66,10 @@ export const addGeneratedImageToBoard = async (
     const width = imageInfo.width > maxWidth ? maxWidth : imageInfo.width;
     const height = (width / imageInfo.width) * imageInfo.height;
     
-    // 构建图片数据
+    // 构建图片数据 - 使用代理URL避免CORS问题
+    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(result.url)}`;
     const imageItem = {
-      url: result.url,
+      url: proxyUrl,
       width,
       height,
     };
@@ -69,8 +91,11 @@ export const createImagePlaceholders = (
   count: number,
   options: AddGeneratedImageOptions = {}
 ): PlaitElement[] => {
-  const { position = [400, 300], spacing = 320, maxWidth = 300 } = options;
+  const { position = [400, 300], spacing = 320, maxWidth = 300, aspectRatio = '3:4' } = options;
   const placeholders: PlaitElement[] = [];
+  
+  // 计算基于宽高比的尺寸
+  const dimensions = calculateDimensionsFromAspectRatio(aspectRatio, maxWidth);
   
   for (let i = 0; i < count; i++) {
     // 计算每张图片的位置（水平排列）
@@ -79,37 +104,91 @@ export const createImagePlaceholders = (
       position[1]
     ];
     
-    // 创建占位符矩形
-    const placeholder = {
-      id: `placeholder_${Date.now()}_${i}`,
-      type: 'geometry',
-      shape: 'rectangle',
-      x: imagePosition[0],
-      y: imagePosition[1],
-      width: maxWidth,
-      height: maxWidth * 0.75, // 4:3 比例
-      points: [
-        [imagePosition[0], imagePosition[1]],
-        [imagePosition[0] + maxWidth, imagePosition[1] + maxWidth * 0.75]
-      ],
-      strokeColor: '#ddd',
-      strokeWidth: 2,
-      fillColor: '#f5f5f5',
-      strokeLineDash: [5, 5], // 虚线边框
-      text: {
-        children: [{ text: '生成中...' }],
-        align: 'center',
-        verticalAlign: 'middle'
-      }
-    } as PlaitElement;
+    const endPosition: Point = [
+      imagePosition[0] + dimensions.width,
+      imagePosition[1] + dimensions.height
+    ];
     
-    placeholders.push(placeholder);
+    // 使用DrawTransforms.insertGeometry创建占位符
+    const placeholder = DrawTransforms.insertGeometry(
+      board, 
+      [imagePosition, endPosition], 
+      BasicShapes.rectangle
+    );
+    
+    if (placeholder) {
+      // 设置为实心矩形，使用浅灰色边框和淡蓝色填充
+      try {
+        const element = placeholder;
+        element.stroke = '#e2e8f0'; // 浅灰色边框
+        element.strokeWidth = 1;
+        element.fill = '#f8fafc'; // 极淡蓝色填充
+        element.opacity = 0.9;
+        element.strokeLineDash = undefined; // 移除虚线
+        
+        // 添加loading动画效果
+        startPlaceholderAnimation(board, element);
+      } catch (error) {
+        console.log('无法设置占位符样式:', error);
+      }
+      placeholders.push(placeholder);
+    }
   }
   
-  // 批量添加占位符到画布
-  DrawTransforms.insertElements(board, placeholders);
-  
   return placeholders;
+};
+
+/**
+ * 为占位符添加颜色渐变动画
+ */
+const startPlaceholderAnimation = (board: PlaitBoard, element: PlaitElement) => {
+  // 动画颜色序列 - 从浅到稍深的蓝灰色调
+  const fillColors = [
+    '#f8fafc', // 极淡蓝灰
+    '#f1f5f9', // 浅蓝灰  
+    '#e2e8f0', // 中浅蓝灰
+    '#cbd5e1', // 中蓝灰
+    '#e2e8f0', // 回到中浅
+    '#f1f5f9', // 回到浅
+  ];
+  
+  const strokeColors = [
+    '#e2e8f0', // 浅灰
+    '#cbd5e1', // 中浅灰
+    '#94a3b8', // 中灰
+    '#64748b', // 深灰
+    '#94a3b8', // 回到中灰
+    '#cbd5e1', // 回到中浅灰
+  ];
+  
+  let animationIndex = 0;
+  const animationInterval = 500; // 500ms切换一次颜色
+  
+  const animate = () => {
+    try {
+      if (element && element.stroke !== undefined) {
+        element.fill = fillColors[animationIndex];
+        element.stroke = strokeColors[animationIndex];
+        animationIndex = (animationIndex + 1) % fillColors.length;
+        
+        // 触发重绘
+        board.apply({
+          type: 'set_node',
+          path: [], // 需要实际的path
+          properties: {},
+          newProperties: {}
+        });
+      }
+    } catch (error) {
+      console.log('动画更新失败:', error);
+    }
+  };
+  
+  // 启动动画
+  const timer = setInterval(animate, animationInterval);
+  
+  // 保存timer引用用于清理（实际项目中可能需要更好的清理机制）
+  (element as any)._animationTimer = timer;
 };
 
 /**
@@ -124,8 +203,8 @@ export const replacePlaceholderWithImage = async (
   const { maxWidth = 300 } = options;
   
   try {
-    // 获取占位符的位置
-    const position: Point = [placeholder.x || 0, placeholder.y || 0];
+    // 获取占位符的位置 - 使用points属性获取几何元素的起始位置
+    const position: Point = (placeholder as any).points ? (placeholder as any).points[0] : [400, 300];
     
     // 加载图片信息
     const imageInfo = await loadImageInfo(result.url);
@@ -134,15 +213,22 @@ export const replacePlaceholderWithImage = async (
     const width = imageInfo.width > maxWidth ? maxWidth : imageInfo.width;
     const height = (width / imageInfo.width) * imageInfo.height;
     
-    // 创建图片元素
+    // 创建图片元素 - 使用代理URL避免CORS问题  
+    const proxyUrl = `http://localhost:3001/image-proxy?url=${encodeURIComponent(result.url)}`;
     const imageItem = {
-      url: result.url,
+      url: proxyUrl,
       width,
       height,
     };
     
-    // 删除占位符
-    DrawTransforms.removeElements(board, [placeholder]);
+    // 清理动画定时器
+    if ((placeholder as any)._animationTimer) {
+      clearInterval((placeholder as any)._animationTimer);
+    }
+    
+    // 删除占位符 - 使用 CoreTransforms
+    const { CoreTransforms } = await import('@plait/core');
+    CoreTransforms.removeElements(board, [placeholder]);
     
     // 添加真实图片
     DrawTransforms.insertImage(board, imageItem, position);
