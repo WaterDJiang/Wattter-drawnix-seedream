@@ -40,7 +40,13 @@ export function getImageUrl(imageElement: PlaitElement): string | null {
 
   if (imageItem?.url) {
     let url = imageItem.url;
-    console.log('🔍 找到图片URL:', url);
+    console.log('🔍 找到图片URL:', url.substring(0, 100) + (url.length > 100 ? '...' : ''));
+
+    // 如果是base64图片，直接返回
+    if (url.startsWith('data:image/') && url.includes('base64,')) {
+      console.log('🔍 imageItem中的base64图片');
+      return url;
+    }
 
     // 如果是代理URL，提取原始URL
     if (url.includes('image-proxy?url=')) {
@@ -59,26 +65,35 @@ export function getImageUrl(imageElement: PlaitElement): string | null {
     return url;
   }
 
-  // 备用检查：直接检查url属性（但排除base64）
-  if (directUrl && (directUrl.startsWith('http://') || directUrl.startsWith('https://'))) {
-    console.log('🔍 找到直接URL:', directUrl);
+  // 备用检查：直接检查url属性
+  if (directUrl) {
+    // 支持HTTP/HTTPS URL
+    if (directUrl.startsWith('http://') || directUrl.startsWith('https://')) {
+      console.log('🔍 找到HTTP/HTTPS URL:', directUrl);
 
-    // 如果是代理URL，提取原始URL
-    if (directUrl.includes('image-proxy?url=')) {
-      try {
-        const urlParams = new URLSearchParams(directUrl.split('?')[1]);
-        const originalUrl = urlParams.get('url');
-        if (originalUrl) {
-          const decodedUrl = decodeURIComponent(originalUrl);
-          console.log('🔍 提取原始URL:', decodedUrl);
-          return decodedUrl;
+      // 如果是代理URL，提取原始URL
+      if (directUrl.includes('image-proxy?url=')) {
+        try {
+          const urlParams = new URLSearchParams(directUrl.split('?')[1]);
+          const originalUrl = urlParams.get('url');
+          if (originalUrl) {
+            const decodedUrl = decodeURIComponent(originalUrl);
+            console.log('🔍 提取原始URL:', decodedUrl);
+            return decodedUrl;
+          }
+        } catch (error) {
+          console.log('🔍 提取原始URL失败:', error);
         }
-      } catch (error) {
-        console.log('🔍 提取原始URL失败:', error);
       }
+
+      return directUrl;
     }
 
-    return directUrl;
+    // 支持base64图片（粘贴的图片）
+    if (directUrl.startsWith('data:image/') && directUrl.includes('base64,')) {
+      console.log('🔍 找到base64图片:', directUrl.substring(0, 50) + '...');
+      return directUrl;
+    }
   }
 
   console.log('🔍 未找到有效的图片URL');
