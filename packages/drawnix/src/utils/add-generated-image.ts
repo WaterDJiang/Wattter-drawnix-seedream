@@ -247,6 +247,13 @@ export const replacePlaceholderWithImage = async (
       return;
     }
 
+    // 验证占位符仍然存在且有效
+    const currentPlaceholder = board.children[placeholderIndex];
+    if (!currentPlaceholder || currentPlaceholder.id !== placeholder.id) {
+      console.warn('⚠️ 占位符已被修改或删除，无法替换');
+      return;
+    }
+
     // 加载图片信息
     const imageInfo = await loadImageInfo(result.url);
 
@@ -264,17 +271,24 @@ export const replacePlaceholderWithImage = async (
     // 使用代理URL避免CORS问题
     const proxyUrl = getImageProxyUrl(result.url);
 
-    // 直接更新占位符的图片URL和尺寸，保持位置不变
-    Transforms.setNode(board, {
-      url: proxyUrl,  // 更新元素的url属性
-      imageItem: {
-        url: proxyUrl,
-        width,
-        height,
-      },
-      isPlaceholder: false,  // 移除占位符标记
-      placeholderIndex: undefined  // 清除占位符索引
-    } as any, [placeholderIndex]);
+    // 安全地更新占位符的图片URL和尺寸，保持位置不变
+    try {
+      Transforms.setNode(board, {
+        url: proxyUrl,  // 更新元素的url属性
+        imageItem: {
+          url: proxyUrl,
+          width,
+          height,
+        },
+        isPlaceholder: false,  // 移除占位符标记
+        placeholderIndex: undefined  // 清除占位符索引
+      } as any, [placeholderIndex]);
+    } catch (error) {
+      console.error('❌ 更新占位符时发生错误:', error);
+      console.error('占位符索引:', placeholderIndex);
+      console.error('Board children 数量:', board.children.length);
+      throw error;
+    }
 
     console.log('✅ 成功替换占位图片为真实图片');
     console.log('Successfully replaced placeholder with image:', result.url);

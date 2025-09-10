@@ -42,9 +42,34 @@ export async function renderElementsToImage(
   })));
 
   try {
-    // 使用Plait的toImage功能渲染选中的元素
+    // 验证board和elements的有效性
+    if (!board || !board.children) {
+      console.warn('⚠️ Board无效，使用占位符');
+      return createSimplePlaceholderImage();
+    }
+
+    if (!elements || elements.length === 0) {
+      console.warn('⚠️ 没有有效元素，使用占位符');
+      return createSimplePlaceholderImage();
+    }
+
+    // 验证所有元素仍然存在于board中
+    const validElements = elements.filter(element =>
+      board.children.some(child => child.id === element.id)
+    );
+
+    if (validElements.length === 0) {
+      console.warn('⚠️ 所有元素都已从board中移除，使用占位符');
+      return createSimplePlaceholderImage();
+    }
+
+    if (validElements.length !== elements.length) {
+      console.warn(`⚠️ 部分元素已移除，从${elements.length}个减少到${validElements.length}个`);
+    }
+
+    // 使用Plait的toImage功能渲染有效的元素
     const imageDataUrl = await toImage(board, {
-      elements: elements,
+      elements: validElements,
       fillStyle: 'transparent', // 透明背景
       padding: 20, // 添加一些边距
       ratio: 2, // 高分辨率
