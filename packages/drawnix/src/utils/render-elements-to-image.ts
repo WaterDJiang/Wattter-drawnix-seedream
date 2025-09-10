@@ -45,35 +45,45 @@ export async function renderElementsToImage(
   const boundingBox = calculateBoundingBox(elements);
   console.log('📐 计算的边界框:', boundingBox);
 
-  // 创建一个临时的画板状态，只包含要渲染的元素
-  const tempBoard = {
-    ...board,
-    children: elements
-  };
-
   try {
-    // 使用Plait的toImage功能渲染元素
-    const imageBlob = await toImage(tempBoard, {
-      // 设置渲染区域为边界框
-      x: boundingBox.x,
-      y: boundingBox.y,
-      width: boundingBox.width,
-      height: boundingBox.height,
-      // 设置合适的像素密度
-      pixelRatio: 2,
-      // 背景透明
-      backgroundColor: 'transparent'
-    });
+    // 暂时使用一个简化的实现：创建一个占位符图片
+    // TODO: 实现真正的元素渲染功能
+    const placeholderImageUrl = await createPlaceholderImage(boundingBox);
+    console.log('✅ 创建占位符图片完成');
 
-    // 将Blob转换为base64 URL
-    const imageUrl = await blobToBase64(imageBlob);
-    console.log('✅ 元素渲染完成，图片大小:', imageBlob.size, 'bytes');
-    
-    return imageUrl;
+    return placeholderImageUrl;
   } catch (error) {
     console.error('❌ 渲染元素为图片失败:', error);
     throw new Error(`渲染失败: ${error.message}`);
   }
+}
+
+/**
+ * 创建一个占位符图片（临时实现）
+ */
+async function createPlaceholderImage(boundingBox: { width: number; height: number }): Promise<string> {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    throw new Error('无法创建Canvas上下文');
+  }
+
+  // 设置画布尺寸
+  canvas.width = Math.max(boundingBox.width, 100);
+  canvas.height = Math.max(boundingBox.height, 100);
+
+  // 绘制一个简单的占位符
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#666';
+  ctx.font = '16px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('渲染的元素', canvas.width / 2, canvas.height / 2);
+
+  // 转换为base64
+  return canvas.toDataURL('image/png');
 }
 
 /**
