@@ -205,9 +205,40 @@ async function handleImageToImageGeneration(
       (result) => {
         console.log('🎨 收到图生图结果:', result);
 
-        // 如果是第二张图片（index=1），说明API返回了多张图片，立即创建第2个占位符
+        // 如果是总数通知事件（index=-1），立即创建所有需要的占位符
+        if (result.index === -1 && result.totalImages && result.totalImages > 1) {
+          console.log(`🎨 收到总数通知，需要生成${result.totalImages}张图片，立即创建所有占位符`);
+
+          // 创建剩余的占位符（第2张到第N张）
+          for (let i = 1; i < result.totalImages; i++) {
+            if (placeholders.length <= i) { // 只创建还不存在的占位符
+              const newPosition: [number, number] = [
+                placeholderPosition[0] + i * (targetSize.width + 20),
+                placeholderPosition[1]
+              ];
+
+              const newPlaceholders = createImagePlaceholders(board, {
+                position: newPosition,
+                spacing: 20,
+                maxWidth: Math.min(targetSize.width, 300),
+                aspectRatio: 'custom',
+                count: 1,
+                customWidth: targetSize.width,
+                customHeight: targetSize.height
+              });
+
+              if (newPlaceholders.length > 0) {
+                placeholders.push(newPlaceholders[0]);
+                console.log(`🎨 提前创建第${i + 1}张图片的占位符`);
+              }
+            }
+          }
+          return; // 总数通知事件不需要替换图片
+        }
+
+        // 如果还没有收到总数通知，但收到了第二张图片，也要创建占位符（兜底逻辑）
         if (result.index === 1 && placeholders.length === 1) {
-          console.log(`🎨 检测到多图生成，创建第2张图片的占位符`);
+          console.log(`🎨 兜底逻辑：检测到第2张图片，创建第2个占位符`);
 
           const newPosition: [number, number] = [
             placeholderPosition[0] + 1 * (targetSize.width + 20),
@@ -226,37 +257,12 @@ async function handleImageToImageGeneration(
 
           if (newPlaceholders.length > 0) {
             placeholders.push(newPlaceholders[0]);
-            console.log(`🎨 创建第2张图片的占位符`);
-          }
-        }
-
-        // 如果是第三张及以后的图片，继续创建占位符
-        if (result.index >= 2 && placeholders.length <= result.index) {
-          console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
-
-          const newPosition: [number, number] = [
-            placeholderPosition[0] + result.index * (targetSize.width + 20),
-            placeholderPosition[1]
-          ];
-
-          const newPlaceholders = createImagePlaceholders(board, {
-            position: newPosition,
-            spacing: 20,
-            maxWidth: Math.min(targetSize.width, 300),
-            aspectRatio: 'custom',
-            count: 1,
-            customWidth: targetSize.width,
-            customHeight: targetSize.height
-          });
-
-          if (newPlaceholders.length > 0) {
-            placeholders.push(newPlaceholders[0]);
-            console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
+            console.log(`🎨 兜底创建第2张图片的占位符`);
           }
         }
 
         // 替换对应索引的占位符
-        if (placeholders[result.index]) {
+        if (result.index >= 0 && placeholders[result.index]) {
           const placeholder = placeholders[result.index];
           const [originalWidth, originalHeight] = result.size.split('x').map(Number);
 
@@ -273,7 +279,7 @@ async function handleImageToImageGeneration(
           });
 
           console.log(`✅ 成功替换第${result.index + 1}张图片:`, result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
-        } else {
+        } else if (result.index >= 0) {
           console.warn(`⚠️ 未找到索引为${result.index}的占位符`);
         }
       }

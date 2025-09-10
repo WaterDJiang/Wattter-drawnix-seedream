@@ -314,18 +314,40 @@ export async function generateImageToImage(
 
           try {
             const parsed = JSON.parse(data);
+
             if (parsed.type === 'image_generation.partial_succeeded') {
               const result: ImageToImageResponse = {
                 index: parsed.image_index || 0,
                 url: parsed.url,
                 size: parsed.size || '1024x1024'
               };
-              
+
               console.log('🎨 收到图生图结果:', result);
               results.push(result);
-              
+
               if (onProgress) {
                 onProgress(result);
+              }
+            } else if (parsed.type === 'image_generation.completed') {
+              // 从completed事件中获取总图片数量
+              const totalImages = parsed.usage?.generated_images;
+              if (totalImages && totalImages > 1) {
+                console.log(`🎨 图生图完成，总共生成${totalImages}张图片`);
+
+                // 为已生成的图片添加totalImages信息
+                results.forEach(result => {
+                  result.totalImages = totalImages;
+                });
+
+                // 如果有进度回调，发送一个特殊的事件来通知总数
+                if (onProgress && totalImages > results.length) {
+                  onProgress({
+                    index: -1, // 特殊索引表示这是总数通知
+                    url: '',
+                    size: '',
+                    totalImages: totalImages
+                  });
+                }
               }
             }
           } catch (e) {
