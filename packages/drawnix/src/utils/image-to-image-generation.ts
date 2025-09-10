@@ -23,23 +23,61 @@ export function getImageUrl(imageElement: PlaitElement): string | null {
   console.log('🔍 元素类型:', (imageElement as any).type);
   console.log('🔍 是否为图片:', PlaitDrawElement.isImage(imageElement));
 
-  // 更宽松的检查：直接检查是否有imageItem
+  // 检查是否为占位符（SVG base64）
+  const directUrl = (imageElement as any).url;
+  if (directUrl && directUrl.startsWith('data:image/svg+xml;base64')) {
+    console.log('🔍 跳过占位符（SVG base64）:', directUrl.substring(0, 50) + '...');
+    return null;
+  }
+
+  // 优先检查imageItem.url（真实图片）
   const imageItem = (imageElement as any).imageItem;
   console.log('🔍 imageItem:', imageItem);
 
   if (imageItem?.url) {
-    console.log('🔍 找到图片URL:', imageItem.url);
-    return imageItem.url;
+    let url = imageItem.url;
+    console.log('🔍 找到图片URL:', url);
+
+    // 如果是代理URL，提取原始URL
+    if (url.includes('image-proxy?url=')) {
+      try {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const originalUrl = urlParams.get('url');
+        if (originalUrl) {
+          url = decodeURIComponent(originalUrl);
+          console.log('🔍 提取原始URL:', url);
+        }
+      } catch (error) {
+        console.log('🔍 提取原始URL失败:', error);
+      }
+    }
+
+    return url;
   }
 
-  // 备用检查：直接检查url属性
-  const directUrl = (imageElement as any).url;
-  if (directUrl) {
+  // 备用检查：直接检查url属性（但排除base64）
+  if (directUrl && (directUrl.startsWith('http://') || directUrl.startsWith('https://'))) {
     console.log('🔍 找到直接URL:', directUrl);
+
+    // 如果是代理URL，提取原始URL
+    if (directUrl.includes('image-proxy?url=')) {
+      try {
+        const urlParams = new URLSearchParams(directUrl.split('?')[1]);
+        const originalUrl = urlParams.get('url');
+        if (originalUrl) {
+          const decodedUrl = decodeURIComponent(originalUrl);
+          console.log('🔍 提取原始URL:', decodedUrl);
+          return decodedUrl;
+        }
+      } catch (error) {
+        console.log('🔍 提取原始URL失败:', error);
+      }
+    }
+
     return directUrl;
   }
 
-  console.log('🔍 未找到图片URL');
+  console.log('🔍 未找到有效的图片URL');
   return null;
 }
 
@@ -151,7 +189,7 @@ export async function generateImageToImage(
     model: "doubao-seedream-4-0-250828",
     prompt: request.prompt,
     image: request.images, // 豆包API支持多图输入
-    size: request.size || "2K",
+    size: "2K", // 豆包API支持 "2K" 或具体像素值
     response_format: "url",
     watermark: false,
     stream: true,
