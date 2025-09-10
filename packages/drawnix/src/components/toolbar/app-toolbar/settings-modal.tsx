@@ -44,13 +44,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
-    console.log('SettingsModal mounted, isOpen:', isOpen);
     setSettings(initialSettings);
   }, [initialSettings]);
-
-  useEffect(() => {
-    console.log('SettingsModal isOpen changed to:', isOpen);
-  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -111,11 +106,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   if (!isOpen) {
-    console.log('SettingsModal not rendering because isOpen is false');
     return null;
   }
-
-  console.log('SettingsModal rendering with isOpen:', isOpen);
 
   return createPortal(
     <div className="settings-modal-overlay">

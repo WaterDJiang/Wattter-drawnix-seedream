@@ -355,24 +355,16 @@ async function handleImageToImageGeneration(
 }
 
 const loadSettings = (): AppSettings => {
-  console.log('Loading settings from localStorage...');
   try {
     const saved = localStorage.getItem('drawnix-settings');
-    console.log('Raw saved settings:', saved);
-    
     if (saved) {
       const parsed = JSON.parse(saved);
-      console.log('Parsed settings:', parsed);
-      
-      const result = {
+      return {
         apiEndpoint: parsed.apiEndpoint || getDefaultEndpoint(),
         apiKey: parsed.apiKey || '',
         watermarkEnabled: parsed.watermarkEnabled !== undefined ? parsed.watermarkEnabled : true,
         defaultModel: parsed.defaultModel || 'doubao-seedream-4-0-250828',
       };
-      
-      console.log('Final loaded settings:', result);
-      return result;
     }
   } catch (error) {
     console.warn('Failed to load settings from localStorage:', error);
@@ -518,14 +510,7 @@ export const Drawnix: React.FC<DrawnixProps> = ({
               isOpen={appState.openSettings}
               onClose={() => setAppState(prevState => ({...prevState, openSettings: false}))}
               onSave={(settings) => {
-                // 保存设置逻辑
-                console.log('Saving settings to localStorage:', settings);
                 localStorage.setItem('drawnix-settings', JSON.stringify(settings));
-
-                // 验证保存是否成功
-                const saved = localStorage.getItem('drawnix-settings');
-                console.log('Settings saved successfully:', saved);
-
                 window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }));
               }}
               initialSettings={loadSettings()}
@@ -540,8 +525,6 @@ export const Drawnix: React.FC<DrawnixProps> = ({
                   imageToImageDialog: null
                 }))}
                 onSubmit={async (prompt, images) => {
-                  console.log('🎨 开始图生图流程:', { prompt, images });
-
                   // 关闭对话框
                   setAppState(prevState => ({
                     ...prevState,

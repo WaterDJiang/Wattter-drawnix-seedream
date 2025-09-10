@@ -51,64 +51,42 @@ const saveSettings = (settings: AppSettings): void => {
 };
 
 export const SettingsMenuItem: React.FC = () => {
-  const drawnixContext = useDrawnix();
-  console.log('useDrawnix context:', drawnixContext);
-  
-  const { appState, setAppState } = drawnixContext;
+  const { appState, setAppState } = useDrawnix();
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
 
-  console.log('SettingsMenuItem render, openSettings:', appState.openSettings);
-  console.log('Full appState:', appState);
-  console.log('setAppState function:', typeof setAppState);
-
   const handleSaveSettings = (newSettings: AppSettings) => {
-    console.log('Settings saved:', newSettings);
     setSettings(newSettings);
     saveSettings(newSettings);
-    
+
     // 广播设置更新事件，其他组件可以监听
-    window.dispatchEvent(new CustomEvent('settingsUpdated', { 
-      detail: newSettings 
+    window.dispatchEvent(new CustomEvent('settingsUpdated', {
+      detail: newSettings
     }));
   };
 
   const handleOpenModal = () => {
-    console.log('Settings menu item clicked, opening modal');
-    console.log('Before setAppState - openSettings:', appState.openSettings);
-
-    // 使用函数式更新确保状态一致性
-    setAppState(prevState => {
-      console.log('Setting openSettings to true, prevState:', prevState);
-      return {
-        ...prevState,
-        openSettings: true,
-      };
-    });
+    setAppState(prevState => ({
+      ...prevState,
+      openSettings: true,
+    }));
   };
 
   const handleCloseModal = () => {
-    console.log('Settings modal closed');
     setAppState(prevState => ({
       ...prevState,
       openSettings: false,
     }));
   };
 
-  console.log('About to render SettingsModal with isOpen:', appState.openSettings);
-
   return (
-    <>
-      <MenuItem
-        icon={SettingsIcon}
-        data-testid="settings-button"
-        onSelect={handleOpenModal}
-        aria-label="应用设置"
-      >
-        设置
-      </MenuItem>
-      
-      
-    </>
+    <MenuItem
+      icon={SettingsIcon}
+      data-testid="settings-button"
+      onSelect={handleOpenModal}
+      aria-label="应用设置"
+    >
+      设置
+    </MenuItem>
   );
 };
 
