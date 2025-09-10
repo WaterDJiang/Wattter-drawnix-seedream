@@ -887,3 +887,237 @@ $control-height: 48px;
   fill-opacity: 0.8 !important;
   stroke-width: 1 !important;
 }
+
+// 自定义尺寸模态框样式 - 浅色风格
+.ai-custom-dimensions-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.ai-custom-dimensions-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  width: 360px;
+  max-width: 90vw;
+  overflow: hidden;
+}
+
+.ai-custom-dimensions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.ai-custom-dimensions-close {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.ai-custom-dimensions-content {
+  padding: 20px 24px;
+}
+
+.ai-dimensions-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-dimensions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  .ai-dimensions-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .ai-swap-dimensions {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: #e5e7eb;
+      color: #374151;
+    }
+  }
+}
+
+.ai-dimensions-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ai-dimension-field {
+  flex: 1;
+  min-width: 0; /* 防止flex子元素溢出 */
+  
+  label {
+    display: block;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+}
+
+.ai-input-with-unit {
+  position: relative;
+  width: 100%;
+  
+  .ai-dimension-input {
+    width: 100%;
+    padding: 10px 32px 10px 12px;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+    
+    &::placeholder {
+      color: #9ca3af;
+      font-weight: 400;
+    }
+    
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+  
+  .ai-input-unit {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 500;
+    pointer-events: none;
+  }
+}
+
+.ai-dimensions-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.ai-ratio-display {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+  
+  .ai-ratio-text {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+  }
+}
+
+.ai-custom-dimensions-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafb;
+}
+
+.ai-custom-dimensions-cancel,
+.ai-custom-dimensions-confirm {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.ai-custom-dimensions-cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+  
+  &:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+}
+
+.ai-custom-dimensions-confirm {
+  background: #3b82f6;
+  color: #ffffff;
+  
+  &:hover {
+    background: #2563eb;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}

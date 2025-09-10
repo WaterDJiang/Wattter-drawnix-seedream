@@ -38,6 +38,9 @@ export const AIInput: React.FC<AIInputProps> = ({
   const [selectedRatio, setSelectedRatio] = useState<string>('3:4');
   const [showRatioDropdown, setShowRatioDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [showCustomDimensionsModal, setShowCustomDimensionsModal] = useState(false);
+  const [customWidth, setCustomWidth] = useState<number>(1024);
+  const [customHeight, setCustomHeight] = useState<number>(1024);
 
   // Keep textarea at fixed height
   useEffect(() => {
@@ -59,6 +62,23 @@ export const AIInput: React.FC<AIInputProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showRatioDropdown]);
+
+  // Close modals with Escape key
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showCustomDimensionsModal) {
+          setShowCustomDimensionsModal(false);
+        }
+        if (showRatioDropdown) {
+          setShowRatioDropdown(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showCustomDimensionsModal, showRatioDropdown]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -83,7 +103,8 @@ export const AIInput: React.FC<AIInputProps> = ({
         position: [400, 300] as [number, number],
         spacing: 320,
         maxWidth: 300,
-        aspectRatio: selectedRatio
+        aspectRatio: selectedRatio,
+        ...(selectedRatio === 'custom' && { customWidth, customHeight })
       };
       
       // 立即创建占位符
@@ -179,6 +200,13 @@ export const AIInput: React.FC<AIInputProps> = ({
       return '2K'; // 让AI自动决定
     }
     
+    if (aspectRatio === 'custom') {
+      // 使用自定义尺寸，确保是8的倍数
+      const width = Math.round(customWidth / 8) * 8;
+      const height = Math.round(customHeight / 8) * 8;
+      return `${width}x${height}`;
+    }
+    
     const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
     if (!widthRatio || !heightRatio) {
       return '2K';
@@ -215,6 +243,7 @@ export const AIInput: React.FC<AIInputProps> = ({
     { label: '3:4', value: '3:4' },
     { label: '2:3', value: '2:3' },
     { label: '9:16', value: '9:16' },
+    { label: '自定义', value: 'custom' },
   ];
 
   return (
@@ -302,7 +331,10 @@ export const AIInput: React.FC<AIInputProps> = ({
                   title="选择图片比例"
                 >
                   <span className="ai-ratio-current">
-                    {aspectRatios.find(r => r.value === selectedRatio)?.label || '3:4'}
+                    {selectedRatio === 'custom' 
+                      ? `${customWidth}×${customHeight}`
+                      : aspectRatios.find(r => r.value === selectedRatio)?.label || '3:4'
+                    }
                   </span>
                   <ChevronDown 
                     size={16} 
@@ -373,13 +405,140 @@ export const AIInput: React.FC<AIInputProps> = ({
                 'ai-ratio-item--selected': ratio.value === selectedRatio
               })}
               onClick={() => {
-                setSelectedRatio(ratio.value);
+                if (ratio.value === 'custom') {
+                  setShowCustomDimensionsModal(true);
+                } else {
+                  setSelectedRatio(ratio.value);
+                }
                 setShowRatioDropdown(false);
               }}
             >
               {ratio.label}
             </button>
           ))}
+        </div>,
+        document.body
+      )}
+      {showCustomDimensionsModal && createPortal(
+        <div className="ai-custom-dimensions-overlay">
+          <div className="ai-custom-dimensions-modal">
+            <div className="ai-custom-dimensions-header">
+              <h3>输入自定义尺寸</h3>
+              <button
+                type="button"
+                className="ai-custom-dimensions-close"
+                onClick={() => setShowCustomDimensionsModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="ai-custom-dimensions-content">
+              {/* 尺寸输入区域 */}
+              <div className="ai-dimensions-wrapper">
+                <div className="ai-dimensions-header">
+                  <span className="ai-dimensions-title">图片尺寸</span>
+                  <button 
+                    type="button" 
+                    className="ai-swap-dimensions"
+                    onClick={() => {
+                      const temp = customWidth;
+                      setCustomWidth(customHeight);
+                      setCustomHeight(temp);
+                    }}
+                    title="交换宽高"
+                  >
+                    ↔
+                  </button>
+                </div>
+                
+                <div className="ai-dimensions-inputs">
+                  <div className="ai-dimension-field">
+                    <label htmlFor="customWidth">宽度</label>
+                    <div className="ai-input-with-unit">
+                      <input
+                        id="customWidth"
+                        type="number"
+                        min="64"
+                        max="4096"
+                        value={customWidth || ''}
+                        onChange={(e) => setCustomWidth(parseInt(e.target.value) || 0)}
+                        onBlur={(e) => {
+                          const value = parseInt(e.target.value) || 64;
+                          const clampedValue = Math.max(64, Math.min(4096, value));
+                          const adjustedValue = Math.round(clampedValue / 8) * 8;
+                          setCustomWidth(adjustedValue);
+                        }}
+                        className="ai-dimension-input"
+                        placeholder="宽度"
+                      />
+                      <span className="ai-input-unit">px</span>
+                    </div>
+                  </div>
+                  
+                  <div className="ai-dimensions-separator">×</div>
+                  
+                  <div className="ai-dimension-field">
+                    <label htmlFor="customHeight">高度</label>
+                    <div className="ai-input-with-unit">
+                      <input
+                        id="customHeight"
+                        type="number"
+                        min="64"
+                        max="4096"
+                        value={customHeight || ''}
+                        onChange={(e) => setCustomHeight(parseInt(e.target.value) || 0)}
+                        onBlur={(e) => {
+                          const value = parseInt(e.target.value) || 64;
+                          const clampedValue = Math.max(64, Math.min(4096, value));
+                          const adjustedValue = Math.round(clampedValue / 8) * 8;
+                          setCustomHeight(adjustedValue);
+                        }}
+                        className="ai-dimension-input"
+                        placeholder="高度"
+                      />
+                      <span className="ai-input-unit">px</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 比例显示 */}
+                <div className="ai-ratio-display">
+                  <span className="ai-ratio-text">
+                    比例: {customWidth && customHeight ? 
+                      (() => {
+                        const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+                        const divisor = gcd(customWidth, customHeight);
+                        return `${customWidth / divisor}:${customHeight / divisor}`;
+                      })()
+                      : '--:--'
+                    }
+                  </span>
+                </div>
+              </div>
+              
+            </div>
+            
+            <div className="ai-custom-dimensions-actions">
+              <button
+                type="button"
+                className="ai-custom-dimensions-cancel"
+                onClick={() => setShowCustomDimensionsModal(false)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="ai-custom-dimensions-confirm"
+                onClick={() => {
+                  setSelectedRatio('custom');
+                  setShowCustomDimensionsModal(false);
+                }}
+              >
+                确定
+              </button>
+            </div>
+          </div>
         </div>,
         document.body
       )}

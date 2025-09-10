@@ -8,6 +8,8 @@ export interface AddGeneratedImageOptions {
   maxWidth?: number;
   spacing?: number;
   aspectRatio?: string;
+  customWidth?: number;
+  customHeight?: number;
 }
 
 /**
@@ -33,9 +35,18 @@ export const loadImageInfo = async (url: string): Promise<{width: number, height
 /**
  * 计算基于宽高比的尺寸
  */
-const calculateDimensionsFromAspectRatio = (aspectRatio: string, maxWidth: number): {width: number, height: number} => {
+const calculateDimensionsFromAspectRatio = (aspectRatio: string, maxWidth: number, customWidth?: number, customHeight?: number): {width: number, height: number} => {
   if (aspectRatio === 'auto') {
     return { width: maxWidth, height: maxWidth * 0.75 }; // 默认4:3比例
+  }
+  
+  if (aspectRatio === 'custom' && customWidth && customHeight) {
+    // 使用自定义尺寸，按比例缩放到合适的预览大小
+    const scale = Math.min(maxWidth / customWidth, maxWidth / customHeight);
+    return {
+      width: Math.round(customWidth * scale),
+      height: Math.round(customHeight * scale)
+    };
   }
   
   const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
@@ -93,11 +104,11 @@ export const createImagePlaceholders = (
   count: number,
   options: AddGeneratedImageOptions = {}
 ): PlaitElement[] => {
-  const { position = [400, 300], spacing = 320, maxWidth = 300, aspectRatio = '3:4' } = options;
+  const { position = [400, 300], spacing = 320, maxWidth = 300, aspectRatio = '3:4', customWidth, customHeight } = options;
   const placeholders: PlaitElement[] = [];
   
   // 计算基于宽高比的尺寸
-  const dimensions = calculateDimensionsFromAspectRatio(aspectRatio, maxWidth);
+  const dimensions = calculateDimensionsFromAspectRatio(aspectRatio, maxWidth, customWidth, customHeight);
   
   for (let i = 0; i < count; i++) {
     // 计算每张图片的位置（水平排列）
