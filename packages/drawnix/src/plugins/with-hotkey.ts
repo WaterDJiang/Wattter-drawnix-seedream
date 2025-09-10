@@ -15,6 +15,7 @@ import { BoardCreationMode, setCreationMode } from '@plait/common';
 import { MindPointerType } from '@plait/mind';
 import { FreehandShape } from './freehand/type';
 import { ArrowLineShape, BasicShapes, PlaitDrawElement } from '@plait/draw';
+import { separateSelectedElements, renderElementsToImage } from '../utils/render-elements-to-image';
 
 export const buildDrawnixHotkeyPlugin = (
   updateAppState: (appState: Partial<DrawnixState>) => void
@@ -40,14 +41,21 @@ export const buildDrawnixHotkeyPlugin = (
         }
 
         const selectedElements = getSelectedElements(board);
-        const selectedImages = selectedElements.filter(element =>
-          PlaitDrawElement.isImage(element)
-        );
 
-        if (selectedImages.length > 0) {
-          // 计算对话框位置（选中图片的下方20px）
-          const firstImage = selectedImages[0];
-          const rect = RectangleClient.getRectangleByPoints(firstImage.points);
+        // 分离选中的元素：图片和可渲染元素
+        const { imageElements, renderableElements } = separateSelectedElements(selectedElements);
+
+        console.log('🔍 Tab键检测到选中元素:', {
+          total: selectedElements.length,
+          images: imageElements.length,
+          renderable: renderableElements.length
+        });
+
+        // 如果有图片或可渲染元素，打开图生图对话框
+        if (imageElements.length > 0 || renderableElements.length > 0) {
+          // 计算对话框位置（选中元素的下方20px）
+          const referenceElement = imageElements[0] || renderableElements[0];
+          const rect = RectangleClient.getRectangleByPoints(referenceElement.points);
 
           // 将画布坐标转换为屏幕坐标
           const screenStart = toScreenPointFromHostPoint(
@@ -56,14 +64,15 @@ export const buildDrawnixHotkeyPlugin = (
           );
 
           const position = {
-            x: screenStart[0], // 与图片左对齐
+            x: screenStart[0], // 与元素左对齐
             y: screenStart[1] + 20 // 下方20px
           };
 
           updateAppState({
             imageToImageDialog: {
               isOpen: true,
-              selectedImages,
+              selectedImages: imageElements, // 只传递图片元素
+              selectedRenderableElements: renderableElements, // 新增：传递可渲染元素
               position
             }
           });
@@ -71,7 +80,7 @@ export const buildDrawnixHotkeyPlugin = (
           event.preventDefault();
           return;
         } else {
-          // 如果没有选中图片，让Tab键执行默认行为
+          // 如果没有选中任何相关元素，让Tab键执行默认行为
           return;
         }
       }

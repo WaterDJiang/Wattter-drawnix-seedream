@@ -37,6 +37,7 @@ export type LinkState = {
 export type ImageToImageDialogState = {
   isOpen: boolean;
   selectedImages: PlaitElement[];
+  selectedRenderableElements?: PlaitElement[]; // 新增：选中的可渲染元素（画笔、文本等）
   position: { x: number; y: number };
 };
 
