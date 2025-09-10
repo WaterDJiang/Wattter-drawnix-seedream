@@ -91,14 +91,26 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 参考图片信息:', { referenceSize, referenceAspectRatio });
 
-    // 确定最终使用的宽高比（优先使用AI对话框选择的比例）
-    const finalAspectRatio = selectedAspectRatio !== '1:1' ? selectedAspectRatio : referenceAspectRatio;
+    // 直接使用选中图片的实际尺寸
+    let targetSize = referenceSize;
 
-    // 计算生成图片的尺寸
-    const targetSize = calculateSizeFromAspectRatio(finalAspectRatio, referenceSize);
+    // 确保满足豆包API的最小尺寸要求（921600像素）
+    const minPixels = 921600;
+    const currentPixels = targetSize.width * targetSize.height;
+
+    if (currentPixels < minPixels) {
+      // 按比例放大到满足最小像素要求
+      const scale = Math.sqrt(minPixels / currentPixels);
+      targetSize = {
+        width: Math.round(targetSize.width * scale),
+        height: Math.round(targetSize.height * scale)
+      };
+      console.log('🎨 图片尺寸过小，按比例放大到:', targetSize);
+    }
+
     const apiSize = formatSizeForAPI(targetSize);
 
-    console.log('🎨 目标尺寸:', { finalAspectRatio, targetSize, apiSize });
+    console.log('🎨 目标尺寸:', { targetSize, apiSize, pixels: targetSize.width * targetSize.height });
 
     // 获取选中图片的URLs
     const imageUrls: string[] = [];
@@ -130,7 +142,6 @@ async function handleImageToImageGeneration(
       position: placeholderPosition,
       spacing: 20,
       maxWidth: targetSize.width,
-      aspectRatio: finalAspectRatio,
       count: 1, // 默认1个占位符
       customWidth: targetSize.width,
       customHeight: targetSize.height
@@ -191,7 +202,6 @@ async function handleImageToImageGeneration(
             position: newPosition,
             spacing: 20,
             maxWidth: targetSize.width,
-            aspectRatio: finalAspectRatio,
             count: 1,
             customWidth: targetSize.width,
             customHeight: targetSize.height
