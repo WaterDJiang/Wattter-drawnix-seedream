@@ -2,6 +2,10 @@ import { PlaitBoard, Point, PlaitElement, Transforms } from '@plait/core';
 import { DrawTransforms, BasicShapes } from '@plait/draw';
 import { loadHTMLImageElement, buildImage } from '../data/image';
 import { ImageGenerationResult } from './image-generation';
+import { setFillColor, setStrokeColor } from '../transforms/property';
+
+// 存储动画定时器的Map，避免直接修改不可扩展的PlaitBoard元素
+const animationTimers = new Map<string, NodeJS.Timeout>();
 
 export interface AddGeneratedImageOptions {
   position?: Point;
@@ -10,6 +14,8 @@ export interface AddGeneratedImageOptions {
   aspectRatio?: string;
   customWidth?: number;
   customHeight?: number;
+  selectedImageWidth?: number;
+  selectedImageHeight?: number;
 }
 
 // 根据环境决定图片代理端点
@@ -109,53 +115,114 @@ export const addGeneratedImageToBoard = async (
 /**
  * 创建图片占位符
  */
-export const createImagePlaceholders = (
+// 创建占位图片的base64数据
+const createPlaceholderImageData = (width: number, height: number, text: string = 'Loading...'): string => {
+  // 使用英文文本避免编码问题，创建一个简单的SVG占位图
+  const svg = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+          <circle cx="10" cy="10" r="2" fill="#9ca3af" opacity="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2" stroke-dasharray="10,5"/>
+      <rect width="100%" height="100%" fill="url(#dots)" opacity="0.3"/>
+      <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
+            font-family="Arial, sans-serif" font-size="16" fill="#6b7280">${text}</text>
+      <circle cx="50%" cy="65%" r="8" fill="#3b82f6" opacity="0.7">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  `;
+
+  // 转换为base64
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
+export const createImagePlaceholders = async (
   board: PlaitBoard,
   count: number,
   options: AddGeneratedImageOptions = {}
-): PlaitElement[] => {
-  const { position = [400, 300], spacing = 320, maxWidth = 300, aspectRatio = '3:4', customWidth, customHeight } = options;
+): Promise<PlaitElement[]> => {
+  console.log('🚀 创建图片占位符');
+
+  if (!board) {
+    throw new Error('Board is null or undefined');
+  }
+
+  const {
+    position = [400, 300],
+    spacing = 320,
+    maxWidth = 300,
+    aspectRatio = '3:4',
+    customWidth,
+    customHeight,
+    selectedImageWidth,
+    selectedImageHeight
+  } = options;
   const placeholders: PlaitElement[] = [];
-  
-  // 计算基于宽高比的尺寸
+
+  // 占位符始终使用用户选择的宽高比，不使用选中图片尺寸
   const dimensions = calculateDimensionsFromAspectRatio(aspectRatio, maxWidth, customWidth, customHeight);
-  
+  console.log('📐 占位符使用宽高比尺寸:', dimensions, '宽高比:', aspectRatio);
+
+  // 选中图片尺寸仅用于生成真实图片时参考
+  if (selectedImageWidth && selectedImageHeight) {
+    console.log('🖼️ 检测到选中图片尺寸（将用于生成图片）:', selectedImageWidth, 'x', selectedImageHeight);
+  }
+
   for (let i = 0; i < count; i++) {
     // 计算每张图片的位置（水平排列）
     const imagePosition: Point = [
       position[0] + i * (maxWidth + spacing),
       position[1]
     ];
-    
-    const endPosition: Point = [
-      imagePosition[0] + dimensions.width,
-      imagePosition[1] + dimensions.height
-    ];
-    
-    // 使用DrawTransforms.insertGeometry创建占位符
-    const placeholder = DrawTransforms.insertGeometry(
-      board, 
-      [imagePosition, endPosition], 
-      BasicShapes.rectangle
+
+    // 创建占位图片数据
+    const placeholderImageData = createPlaceholderImageData(
+      dimensions.width,
+      dimensions.height,
+      `Generating ${i + 1}/${count}`
     );
-    
-    if (placeholder) {
-      // 直接将占位符添加到数组
+
+    // 创建图片项
+    const imageItem = {
+      url: placeholderImageData,
+      width: dimensions.width,
+      height: dimensions.height,
+    };
+
+    // 记录插入前的元素数量
+    const beforeCount = board.children.length;
+
+    // 插入占位图片
+    DrawTransforms.insertImage(board, imageItem, imagePosition);
+    console.log(`🔍 [DEBUG] 插入前元素数量: ${beforeCount}, 插入后元素数量: ${board.children.length}`);
+
+    // 检查是否有新元素被添加
+    if (board.children.length > beforeCount) {
+      // 获取最新添加的元素（通常是最后一个）
+      const placeholder = board.children[board.children.length - 1];
+      console.log(`🔍 [DEBUG] 找到新插入的元素:`, placeholder);
+
+      // 标记这是一个占位符，方便后续识别和替换
+      const elementPath = board.children.length - 1;
+      Transforms.setNode(board, {
+        isPlaceholder: true,  // 标记为占位符
+        placeholderIndex: i   // 记录占位符索引
+      } as any, [elementPath]);
+
       placeholders.push(placeholder);
-      console.log('成功创建占位符:', placeholder);
+      console.log(`🎨 成功创建占位图片 ${i + 1}/${count}`);
+    } else {
+      console.warn(`⚠️ 占位图片 ${i + 1} 插入失败，元素数量未增加`);
     }
   }
-  
+
   return placeholders;
 };
 
-/**
- * 为占位符添加颜色渐变动画（暂时禁用）
- */
-const startPlaceholderAnimation = (board: PlaitBoard, element: PlaitElement) => {
-  // 暂时禁用动画以确保基本功能正常工作
-  console.log('占位符动画已禁用');
-};
+
 
 /**
  * 替换占位符为真实图片
@@ -166,39 +233,50 @@ export const replacePlaceholderWithImage = async (
   result: ImageGenerationResult,
   options: AddGeneratedImageOptions = {}
 ): Promise<void> => {
+  console.log('🔄 开始替换占位图片为真实图片');
+  console.log('🔄 占位符:', placeholder);
+  console.log('🔄 图片结果:', result);
+
   const { maxWidth = 300 } = options;
-  
+
   try {
-    // 获取占位符的位置 - 使用points属性获取几何元素的起始位置
-    const position: Point = (placeholder as any).points ? (placeholder as any).points[0] : [400, 300];
-    
+    // 找到占位符在board中的索引
+    const placeholderIndex = board.children.findIndex(child => child.id === placeholder.id);
+    if (placeholderIndex < 0) {
+      console.warn('⚠️ 未找到占位符，无法替换');
+      return;
+    }
+
     // 加载图片信息
     const imageInfo = await loadImageInfo(result.url);
-    
-    // 计算缩放后的尺寸
-    const width = imageInfo.width > maxWidth ? maxWidth : imageInfo.width;
-    const height = (width / imageInfo.width) * imageInfo.height;
-    
-    // 创建图片元素 - 使用代理URL避免CORS问题  
-    const proxyUrl = getImageProxyUrl(result.url);
-    const imageItem = {
-      url: proxyUrl,
-      width,
-      height,
-    };
-    
-    // 清理动画定时器
-    if ((placeholder as any)._animationTimer) {
-      clearInterval((placeholder as any)._animationTimer);
+
+    // 计算缩放后的尺寸，保持占位符的宽高比
+    const currentImageItem = (placeholder as any).imageItem;
+    let width = currentImageItem?.width || maxWidth;
+    let height = currentImageItem?.height || (width * 3 / 4); // 默认3:4比例
+
+    // 如果新图片太大，按比例缩放
+    if (imageInfo.width > width) {
+      const scale = width / imageInfo.width;
+      height = imageInfo.height * scale;
     }
-    
-    // 删除占位符 - 使用 CoreTransforms
-    const { CoreTransforms } = await import('@plait/core');
-    CoreTransforms.removeElements(board, [placeholder]);
-    
-    // 添加真实图片
-    DrawTransforms.insertImage(board, imageItem, position);
-    
+
+    // 使用代理URL避免CORS问题
+    const proxyUrl = getImageProxyUrl(result.url);
+
+    // 直接更新占位符的图片URL和尺寸，保持位置不变
+    Transforms.setNode(board, {
+      url: proxyUrl,  // 更新元素的url属性
+      imageItem: {
+        url: proxyUrl,
+        width,
+        height,
+      },
+      isPlaceholder: false,  // 移除占位符标记
+      placeholderIndex: undefined  // 清除占位符索引
+    } as any, [placeholderIndex]);
+
+    console.log('✅ 成功替换占位图片为真实图片');
     console.log('Successfully replaced placeholder with image:', result.url);
   } catch (error) {
     console.error('Failed to replace placeholder with image:', error);

@@ -7,7 +7,7 @@ import { ToolButton } from '../tool-button';
 import { SendIcon } from '../icons';
 import { Paperclip, Send, X, Image, Sparkles, ChevronDown } from 'lucide-react';
 import { useBoard } from '@plait-board/react-board';
-import { PlaitElement } from '@plait/core';
+import { PlaitElement, getSelectedElements } from '@plait/core';
 import { createImageGenerationAPI, ImageGenerationResult } from '../../utils/image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from '../../utils/add-generated-image';
 import './ai-input.scss';
@@ -82,9 +82,13 @@ export const AIInput: React.FC<AIInputProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      console.log('🚨 Enter键按下，inputValue:', inputValue, 'isLoading:', isLoading);
       e.preventDefault();
       if (inputValue.trim() && !isLoading) {
+        console.log('🚨 调用handleFormSubmit...');
         handleFormSubmit(e as any);
+      } else {
+        console.log('🚨 不满足条件，不调用handleFormSubmit');
       }
     } else if (e.key === 'Escape') {
       setIsExpanded(false);
@@ -92,24 +96,55 @@ export const AIInput: React.FC<AIInputProps> = ({
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
+    console.warn('🚨 handleFormSubmit 被调用了！inputValue:', inputValue, 'isLoading:', isLoading);
+    
     e.preventDefault();
     if (inputValue.trim() && !isLoading) {
+      console.log('🚨 开始生成流程...');
       setIsLoading(true);
       
       const currentPrompt = inputValue.trim();
       setInputValue('');
       
+      // 检查是否有选中的图片元素（用于生成图片时参考尺寸）
+      const selectedElements = getSelectedElements(board);
+      const selectedImage = selectedElements.find(element =>
+        (element as any).type === 'image' || (element as any).imageItem
+      );
+
+      let selectedImageWidth, selectedImageHeight;
+      if (selectedImage) {
+        const imageItem = (selectedImage as any).imageItem;
+        if (imageItem) {
+          selectedImageWidth = imageItem.width;
+          selectedImageHeight = imageItem.height;
+          console.log('🖼️ 检测到选中图片尺寸:', selectedImageWidth, 'x', selectedImageHeight);
+        }
+      }
+
       const options = {
         position: [400, 300] as [number, number],
         spacing: 320,
-        maxWidth: 300,
-        aspectRatio: selectedRatio,
+        maxWidth: 300, // 占位符使用固定的最大宽度
+        aspectRatio: selectedRatio, // 占位符使用用户选择的宽高比
+        selectedImageWidth, // 传递选中图片尺寸供生成图片时参考
+        selectedImageHeight,
         ...(selectedRatio === 'custom' && { customWidth, customHeight })
       };
       
       // 立即创建占位符
-      const placeholders = createImagePlaceholders(board, 1, options);
-      
+      console.error('🚀 [DEBUG] 准备调用 createImagePlaceholders, board:', board, 'options:', options);
+      console.error('🚀 [DEBUG] board类型:', typeof board, 'board是否null:', board === null);
+
+      let placeholders: PlaitElement[] = [];
+      try {
+        placeholders = await createImagePlaceholders(board, 1, options);
+        console.error('🚀 [DEBUG] createImagePlaceholders 返回了:', placeholders);
+      } catch (error) {
+        console.error('🚀 [DEBUG] createImagePlaceholders 抛出错误:', error);
+        throw error;
+      }
+
       try {
         // 转换上传的图片为 data URLs
         const imageUrls: string[] = [];
@@ -146,15 +181,21 @@ export const AIInput: React.FC<AIInputProps> = ({
           },
           // 进度回调：每生成一张图片就替换对应的占位符
           (imageResult) => {
+            console.log('🔄 收到图片生成结果:', imageResult);
+            console.log('🔄 当前占位符数组:', placeholders);
+            
             if (placeholders[imageResult.index]) {
+              console.log('🔄 开始替换占位符', imageResult.index);
               replacePlaceholderWithImage(
                 board, 
                 placeholders[imageResult.index], 
                 imageResult, 
                 options
               ).catch(error => {
-                console.error(`Failed to replace placeholder ${imageResult.index}:`, error);
+                console.error(`❌ 替换占位符 ${imageResult.index} 失败:`, error);
               });
+            } else {
+              console.error('❌ 占位符索引', imageResult.index, '不存在！');
             }
           }
         );
@@ -178,9 +219,10 @@ export const AIInput: React.FC<AIInputProps> = ({
         } catch (cleanupError) {
           console.error('Failed to cleanup placeholders:', cleanupError);
         }
+      } finally {
+        console.log('🚨 重置isLoading状态');
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     }
   };
 
