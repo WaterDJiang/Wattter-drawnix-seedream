@@ -33,7 +33,7 @@ export const AIInput: React.FC<AIInputProps> = ({
   const ratioButtonRef = useRef<HTMLButtonElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 改名为isSubmitting，表示提交状态
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [selectedRatio, setSelectedRatio] = useState<string>('3:4');
   const [showRatioDropdown, setShowRatioDropdown] = useState(false);
@@ -82,9 +82,9 @@ export const AIInput: React.FC<AIInputProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      console.log('🚨 Enter键按下，inputValue:', inputValue, 'isLoading:', isLoading);
+      console.log('🚨 Enter键按下，inputValue:', inputValue, 'isSubmitting:', isSubmitting);
       e.preventDefault();
-      if (inputValue.trim() && !isLoading) {
+      if (inputValue.trim() && !isSubmitting) {
         console.log('🚨 调用handleFormSubmit...');
         handleFormSubmit(e as any);
       } else {
@@ -96,15 +96,15 @@ export const AIInput: React.FC<AIInputProps> = ({
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
-    console.warn('🚨 handleFormSubmit 被调用了！inputValue:', inputValue, 'isLoading:', isLoading);
-    
+    console.warn('🚨 handleFormSubmit 被调用了！inputValue:', inputValue, 'isSubmitting:', isSubmitting);
+
     e.preventDefault();
-    if (inputValue.trim() && !isLoading) {
+    if (inputValue.trim() && !isSubmitting) {
       console.log('🚨 开始生成流程...');
-      setIsLoading(true);
-      
+      setIsSubmitting(true);
+
       const currentPrompt = inputValue.trim();
-      setInputValue('');
+      setInputValue(''); // 立即清空输入框，允许输入下一个提示词
       
       // 检查是否有选中的图片元素（用于生成图片时参考尺寸）
       const selectedElements = getSelectedElements(board);
@@ -132,26 +132,30 @@ export const AIInput: React.FC<AIInputProps> = ({
         ...(selectedRatio === 'custom' && { customWidth, customHeight })
       };
       
-      // 立即创建占位符
-      console.error('🚀 [DEBUG] 准备调用 createImagePlaceholders, board:', board, 'options:', options);
-      console.error('🚀 [DEBUG] board类型:', typeof board, 'board是否null:', board === null);
+      // 立即重置提交状态，允许下一次提交
+      setIsSubmitting(false);
 
-      let placeholders: PlaitElement[] = [];
-      try {
-        placeholders = await createImagePlaceholders(board, { ...options, count: 1 });
-        console.error('🚀 [DEBUG] createImagePlaceholders 返回了:', placeholders);
-      } catch (error) {
-        console.error('🚀 [DEBUG] createImagePlaceholders 抛出错误:', error);
-        throw error;
-      }
+      // 异步执行图片生成，不阻塞UI
+      (async () => {
+        console.error('🚀 [DEBUG] 准备调用 createImagePlaceholders, board:', board, 'options:', options);
+        console.error('🚀 [DEBUG] board类型:', typeof board, 'board是否null:', board === null);
 
-      try {
-        // 转换上传的图片为 data URLs
-        const imageUrls: string[] = [];
-        for (const file of uploadedImages) {
-          const dataUrl = await convertFileToDataURL(file);
-          imageUrls.push(dataUrl);
+        let placeholders: PlaitElement[] = [];
+        try {
+          placeholders = await createImagePlaceholders(board, { ...options, count: 1 });
+          console.error('🚀 [DEBUG] createImagePlaceholders 返回了:', placeholders);
+        } catch (error) {
+          console.error('🚀 [DEBUG] createImagePlaceholders 抛出错误:', error);
+          return; // 如果创建占位符失败，直接返回
         }
+
+        try {
+          // 转换上传的图片为 data URLs
+          const imageUrls: string[] = [];
+          for (const file of uploadedImages) {
+            const dataUrl = await convertFileToDataURL(file);
+            imageUrls.push(dataUrl);
+          }
 
         // Call image generation API  
         const pixelSize = convertAspectRatioToPixelSize(selectedRatio);
@@ -203,26 +207,24 @@ export const AIInput: React.FC<AIInputProps> = ({
         if (result.error) {
           throw new Error(result.error);
         }
-        
-        if (onSubmit) {
-          onSubmit(currentPrompt);
+
+          if (onSubmit) {
+            onSubmit(currentPrompt);
+          }
+
+        } catch (error) {
+          console.error('Image generation error:', error);
+          alert(`图片生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
+
+          // 清理占位符
+          try {
+            const { CoreTransforms } = await import('@plait/core');
+            CoreTransforms.removeElements(board, placeholders);
+          } catch (cleanupError) {
+            console.error('Failed to cleanup placeholders:', cleanupError);
+          }
         }
-        
-      } catch (error) {
-        console.error('Image generation error:', error);
-        alert(`图片生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
-        
-        // 清理占位符
-        try {
-          const { CoreTransforms } = await import('@plait/core');
-          CoreTransforms.removeElements(board, placeholders);
-        } catch (cleanupError) {
-          console.error('Failed to cleanup placeholders:', cleanupError);
-        }
-      } finally {
-        console.log('🚨 重置isLoading状态');
-        setIsLoading(false);
-      }
+      })(); // 立即执行异步函数
     }
   };
 
