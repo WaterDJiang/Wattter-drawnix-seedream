@@ -195,8 +195,13 @@ export const createImagePlaceholders = (
     // 记录插入前的元素数量
     const beforeCount = board.children.length;
 
-    // 插入占位图片
-    DrawTransforms.insertImage(board, imageItem, imagePosition);
+    // 插入占位图片（添加小延迟避免框架冲突）
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        DrawTransforms.insertImage(board, imageItem, imagePosition);
+        resolve();
+      }, 5); // 5ms延迟
+    });
     console.log(`🔍 [DEBUG] 插入前元素数量: ${beforeCount}, 插入后元素数量: ${board.children.length}`);
 
     // 检查是否有新元素被添加
@@ -208,10 +213,17 @@ export const createImagePlaceholders = (
       // 标记这是一个占位符，方便后续识别和替换
       const elementPath = board.children.length - 1;
       try {
-        Transforms.setNode(board, {
-          isPlaceholder: true,  // 标记为占位符
-          placeholderIndex: i   // 记录占位符索引
-        } as any, [elementPath]);
+        // 添加延迟避免框架状态冲突
+        setTimeout(() => {
+          try {
+            Transforms.setNode(board, {
+              isPlaceholder: true,  // 标记为占位符
+              placeholderIndex: i   // 记录占位符索引
+            } as any, [elementPath]);
+          } catch (error) {
+            console.error(`❌ 标记占位符 ${i + 1} 失败:`, error);
+          }
+        }, 15); // 15ms延迟，在插入后执行
       } catch (error) {
         console.error(`❌ 标记占位符 ${i + 1} 失败:`, error);
         // 继续执行，不中断流程
@@ -278,16 +290,26 @@ export const replacePlaceholderWithImage = async (
 
     // 安全地更新占位符的图片URL和尺寸，保持位置不变
     try {
-      Transforms.setNode(board, {
-        url: proxyUrl,  // 更新元素的url属性
-        imageItem: {
-          url: proxyUrl,
-          width,
-          height,
-        },
-        isPlaceholder: false,  // 移除占位符标记
-        placeholderIndex: undefined  // 清除占位符索引
-      } as any, [placeholderIndex]);
+      // 使用setTimeout来延迟执行，避免框架状态冲突
+      await new Promise<void>((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            Transforms.setNode(board, {
+              url: proxyUrl,  // 更新元素的url属性
+              imageItem: {
+                url: proxyUrl,
+                width,
+                height,
+              },
+              isPlaceholder: false,  // 移除占位符标记
+              placeholderIndex: undefined  // 清除占位符索引
+            } as any, [placeholderIndex]);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, 10); // 10ms延迟
+      });
     } catch (error) {
       console.error('❌ 更新占位符时发生错误:', error);
       console.error('占位符索引:', placeholderIndex);
