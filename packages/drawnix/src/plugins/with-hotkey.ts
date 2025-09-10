@@ -43,12 +43,12 @@ export const buildDrawnixHotkeyPlugin = (
         );
 
         if (selectedImages.length > 0) {
-          // 计算对话框位置（选中图片的右上角）
+          // 计算对话框位置（选中图片的下方20px）
           const firstImage = selectedImages[0];
           const rect = RectangleClient.getRectangleByPoints(firstImage.points);
           const position = {
-            x: rect.x + rect.width + 20,
-            y: rect.y
+            x: rect.x, // 与图片左对齐
+            y: rect.y + rect.height + 20 // 下方20px
           };
 
           updateAppState({
