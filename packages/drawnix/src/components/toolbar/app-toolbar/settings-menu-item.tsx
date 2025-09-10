@@ -75,23 +75,23 @@ export const SettingsMenuItem: React.FC = () => {
   const handleOpenModal = () => {
     console.log('Settings menu item clicked, opening modal');
     console.log('Before setAppState - openSettings:', appState.openSettings);
-    
-    // 使用setTimeout确保菜单事件完全处理完毕
-    setTimeout(() => {
-      console.log('Setting openSettings to true after delay');
-      setAppState(prevState => ({
+
+    // 使用函数式更新确保状态一致性
+    setAppState(prevState => {
+      console.log('Setting openSettings to true, prevState:', prevState);
+      return {
         ...prevState,
         openSettings: true,
-      }));
-    }, 10);
+      };
+    });
   };
 
   const handleCloseModal = () => {
     console.log('Settings modal closed');
-    setAppState({
-      ...appState,
+    setAppState(prevState => ({
+      ...prevState,
       openSettings: false,
-    });
+    }));
   };
 
   console.log('About to render SettingsModal with isOpen:', appState.openSettings);

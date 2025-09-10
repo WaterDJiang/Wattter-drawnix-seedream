@@ -491,16 +491,16 @@ export const Drawnix: React.FC<DrawnixProps> = ({
             <CleanConfirm container={containerRef.current}></CleanConfirm>
             <SettingsModal
               isOpen={appState.openSettings}
-              onClose={() => setAppState({...appState, openSettings: false})}
+              onClose={() => setAppState(prevState => ({...prevState, openSettings: false}))}
               onSave={(settings) => {
                 // 保存设置逻辑
                 console.log('Saving settings to localStorage:', settings);
                 localStorage.setItem('drawnix-settings', JSON.stringify(settings));
-                
+
                 // 验证保存是否成功
                 const saved = localStorage.getItem('drawnix-settings');
                 console.log('Settings saved successfully:', saved);
-                
+
                 window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: settings }));
               }}
               initialSettings={loadSettings()}
@@ -510,18 +510,18 @@ export const Drawnix: React.FC<DrawnixProps> = ({
                 board={board}
                 selectedImages={appState.imageToImageDialog.selectedImages}
                 position={appState.imageToImageDialog.position}
-                onClose={() => setAppState({
-                  ...appState,
+                onClose={() => setAppState(prevState => ({
+                  ...prevState,
                   imageToImageDialog: null
-                })}
+                }))}
                 onSubmit={async (prompt, images) => {
                   console.log('🎨 开始图生图流程:', { prompt, images });
 
                   // 关闭对话框
-                  setAppState({
-                    ...appState,
+                  setAppState(prevState => ({
+                    ...prevState,
                     imageToImageDialog: null
-                  });
+                  }));
 
                   // 调用图生图处理函数
                   if (board) {
