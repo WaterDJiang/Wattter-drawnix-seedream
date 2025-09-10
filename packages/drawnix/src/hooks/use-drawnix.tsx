@@ -2,7 +2,7 @@
  * A React context for sharing the board object, in a way that re-renders the
  * context whenever changes occur.
  */
-import { PlaitBoard, PlaitPointerType } from '@plait/core';
+import { PlaitBoard, PlaitPointerType, PlaitElement } from '@plait/core';
 import { createContext, useContext } from 'react';
 import { MindPointerType } from '@plait/mind';
 import { DrawPointerType } from '@plait/draw';
@@ -34,6 +34,12 @@ export type LinkState = {
   isHoveringOrigin: boolean;
 };
 
+export type ImageToImageDialogState = {
+  isOpen: boolean;
+  selectedImages: PlaitElement[];
+  position: { x: number; y: number };
+};
+
 export type DrawnixState = {
   pointer: DrawnixPointerType;
   isMobile: boolean;
@@ -42,6 +48,7 @@ export type DrawnixState = {
   openCleanConfirm: boolean;
   openSettings: boolean;
   linkState?: LinkState | null;
+  imageToImageDialog?: ImageToImageDialogState | null;
 };
 
 export const DrawnixContext = createContext<{

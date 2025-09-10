@@ -1,0 +1,164 @@
+.image-to-image-dialog {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 12px;
+
+  &__close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s ease;
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+
+    &:hover {
+      background: #f5f5f5;
+      color: #333;
+      transform: scale(1.05);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+
+  &__input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+    min-width: 200px;
+
+    &:focus {
+      border-color: #007AFF;
+      box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+    }
+
+    &:disabled {
+      background: rgba(0, 0, 0, 0.02);
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    &::placeholder {
+      color: #999;
+    }
+  }
+
+  &__submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #007AFF;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: #0056CC;
+    }
+
+    &:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// 暗色主题支持
+[data-theme="dark"] {
+  .image-to-image-dialog {
+    background: #2c2c2c;
+    border-color: rgba(255, 255, 255, 0.12);
+    
+    &__header {
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+    }
+    
+    &__title {
+      color: #fff;
+    }
+    
+    &__close {
+      color: #ccc;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+    }
+    
+    &__input {
+      background: #3c3c3c;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      
+      &:focus {
+        border-color: #007AFF;
+        box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+      }
+      
+      &:disabled {
+        background: rgba(255, 255, 255, 0.05);
+        color: #999;
+      }
+      
+      &::placeholder {
+        color: #999;
+      }
+    }
+    
+    &__hint {
+      color: #999;
+    }
+  }
+}

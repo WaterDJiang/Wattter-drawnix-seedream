@@ -3,6 +3,7 @@ import {
   getSelectedElements,
   PlaitBoard,
   PlaitPointerType,
+  RectangleClient,
 } from '@plait/core';
 import { isHotkey } from 'is-hotkey';
 import { addImage, saveAsImage } from '../utils/image';
@@ -11,7 +12,7 @@ import { DrawnixState } from '../hooks/use-drawnix';
 import { BoardCreationMode, setCreationMode } from '@plait/common';
 import { MindPointerType } from '@plait/mind';
 import { FreehandShape } from './freehand/type';
-import { ArrowLineShape, BasicShapes } from '@plait/draw';
+import { ArrowLineShape, BasicShapes, PlaitDrawElement } from '@plait/draw';
 
 export const buildDrawnixHotkeyPlugin = (
   updateAppState: (appState: Partial<DrawnixState>) => void
@@ -22,6 +23,50 @@ export const buildDrawnixHotkeyPlugin = (
       const isTypingNormal =
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement;
+
+      // Tab键：图生图功能 - 放在条件判断之外
+      if (event.key === 'Tab' && !isTypingNormal) {
+        // 检查是否已经有图生图对话框打开
+        const currentState = (board as any).appState;
+        if (currentState?.imageToImageDialog?.isOpen) {
+          // 如果对话框已经打开，关闭它
+          updateAppState({
+            imageToImageDialog: null
+          });
+          event.preventDefault();
+          return;
+        }
+
+        const selectedElements = getSelectedElements(board);
+        const selectedImages = selectedElements.filter(element =>
+          PlaitDrawElement.isImage(element)
+        );
+
+        if (selectedImages.length > 0) {
+          // 计算对话框位置（选中图片的右上角）
+          const firstImage = selectedImages[0];
+          const rect = RectangleClient.getRectangleByPoints(firstImage.points);
+          const position = {
+            x: rect.x + rect.width + 20,
+            y: rect.y
+          };
+
+          updateAppState({
+            imageToImageDialog: {
+              isOpen: true,
+              selectedImages,
+              position
+            }
+          });
+
+          event.preventDefault();
+          return;
+        } else {
+          // 如果没有选中图片，让Tab键执行默认行为
+          return;
+        }
+      }
+
       if (
         !isTypingNormal &&
         (PlaitBoard.getMovingPointInBoard(board) ||
@@ -51,6 +96,8 @@ export const buildDrawnixHotkeyPlugin = (
         if (isHotkey(['mod+u'])(event)) {
           addImage(board);
         }
+
+
         if (!event.altKey && !event.metaKey && !event.ctrlKey) {
           if (event.key === 'h') {
             BoardTransforms.updatePointerType(board, PlaitPointerType.hand);

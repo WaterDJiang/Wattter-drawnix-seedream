@@ -139,11 +139,10 @@ const createPlaceholderImageData = (width: number, height: number, text: string 
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 };
 
-export const createImagePlaceholders = async (
+export const createImagePlaceholders = (
   board: PlaitBoard,
-  count: number,
-  options: AddGeneratedImageOptions = {}
-): Promise<PlaitElement[]> => {
+  options: AddGeneratedImageOptions & { count?: number } = {}
+): PlaitElement[] => {
   console.log('🚀 创建图片占位符');
 
   if (!board) {
@@ -158,7 +157,8 @@ export const createImagePlaceholders = async (
     customWidth,
     customHeight,
     selectedImageWidth,
-    selectedImageHeight
+    selectedImageHeight,
+    count = 1
   } = options;
   const placeholders: PlaitElement[] = [];
 
