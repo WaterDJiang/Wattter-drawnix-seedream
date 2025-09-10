@@ -207,10 +207,15 @@ export const createImagePlaceholders = (
 
       // 标记这是一个占位符，方便后续识别和替换
       const elementPath = board.children.length - 1;
-      Transforms.setNode(board, {
-        isPlaceholder: true,  // 标记为占位符
-        placeholderIndex: i   // 记录占位符索引
-      } as any, [elementPath]);
+      try {
+        Transforms.setNode(board, {
+          isPlaceholder: true,  // 标记为占位符
+          placeholderIndex: i   // 记录占位符索引
+        } as any, [elementPath]);
+      } catch (error) {
+        console.error(`❌ 标记占位符 ${i + 1} 失败:`, error);
+        // 继续执行，不中断流程
+      }
 
       placeholders.push(placeholder);
       console.log(`🎨 成功创建占位图片 ${i + 1}/${count}`);
