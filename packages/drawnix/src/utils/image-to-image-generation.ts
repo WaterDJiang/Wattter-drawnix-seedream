@@ -249,12 +249,14 @@ export async function generateImageToImage(
     apiKey: request.apiKey
   };
 
-  // 添加组图生成参数（只有在需要生成多图时才添加）
-  if (request.sequential_image_generation === 'auto' && request.max_images && request.max_images > 1) {
+  // 添加组图生成参数（让豆包API自己判断）
+  if (request.sequential_image_generation === 'auto') {
     requestBody.sequential_image_generation = 'auto';
-    requestBody.sequential_image_generation_options = {
-      max_images: request.max_images
-    };
+    if (request.max_images && request.max_images > 1) {
+      requestBody.sequential_image_generation_options = {
+        max_images: request.max_images
+      };
+    }
   }
 
   console.log('🎨 发送图生图请求:', requestBody);

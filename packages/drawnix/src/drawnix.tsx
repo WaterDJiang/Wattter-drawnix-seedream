@@ -46,8 +46,7 @@ import {
   getImageSize,
   getImageAspectRatio,
   calculateSizeFromAspectRatio,
-  formatSizeForAPI,
-  analyzePromptForMultipleImages
+  formatSizeForAPI
 } from './utils/image-to-image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from './utils/add-generated-image';
 
@@ -117,10 +116,6 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 图片URLs:', imageUrls);
 
-    // 分析提示词，判断是否需要生成多张图片
-    const promptAnalysis = analyzePromptForMultipleImages(prompt);
-    console.log('🎨 提示词分析结果:', promptAnalysis);
-
     // 计算占位符位置（在选中图片区域的右侧）
     const firstImageRect = RectangleClient.getRectangleByPoints(firstImage.points);
     const placeholderPosition: [number, number] = [
@@ -130,14 +125,13 @@ async function handleImageToImageGeneration(
 
     console.log('🎨 占位符位置:', placeholderPosition);
 
-    // 创建占位符（根据分析结果决定数量）
-    const imageCount = promptAnalysis.shouldGenerateMultiple ? promptAnalysis.maxImages : 1;
+    // 默认创建1个占位符，让API决定是否生成多张图片
     const placeholders = createImagePlaceholders(board, {
       position: placeholderPosition,
       spacing: 20,
       maxWidth: targetSize.width,
       aspectRatio: finalAspectRatio,
-      count: imageCount,
+      count: 1, // 默认1个占位符
       customWidth: targetSize.width,
       customHeight: targetSize.height
     });
@@ -152,7 +146,7 @@ async function handleImageToImageGeneration(
     // 获取设置
     const settings = loadSettings();
 
-    // 调用图生图API
+    // 调用图生图API，让豆包API自己判断是否生成多张图片
     await generateImageToImage(
       {
         prompt,
@@ -160,16 +154,16 @@ async function handleImageToImageGeneration(
         size: apiSize,
         watermark: settings.watermarkEnabled,
         apiKey: settings.apiKey,
-        // 添加组图生成参数
-        sequential_image_generation: promptAnalysis.shouldGenerateMultiple ? 'auto' : 'disabled',
-        max_images: promptAnalysis.shouldGenerateMultiple ? promptAnalysis.maxImages : undefined
+        // 让豆包API自动判断是否需要生成多张图片
+        sequential_image_generation: 'auto',
+        max_images: 10 // 设置最大限制，防止生成过多图片
       },
       (result) => {
         console.log('🎨 收到图生图结果:', result);
 
-        // 替换占位符
-        if (placeholders[result.index]) {
-          const placeholder = placeholders[result.index];
+        // 如果是第一张图片，替换现有占位符
+        if (result.index === 0 && placeholders[0]) {
+          const placeholder = placeholders[0];
           const [width, height] = result.size.split('x').map(Number);
 
           // 使用replacePlaceholderWithImage函数来替换占位符
@@ -180,7 +174,44 @@ async function handleImageToImageGeneration(
             size: result.size
           });
 
-          console.log('✅ 成功替换占位符为真实图片:', result.url);
+          console.log('✅ 成功替换第一个占位符为真实图片:', result.url);
+        }
+        // 如果是后续图片，动态创建新占位符并立即替换
+        else if (result.index > 0) {
+          console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
+
+          // 计算新占位符的位置（在第一个占位符右侧）
+          const newPosition: [number, number] = [
+            placeholderPosition[0] + result.index * (targetSize.width + 20),
+            placeholderPosition[1]
+          ];
+
+          // 创建新占位符
+          const newPlaceholders = createImagePlaceholders(board, {
+            position: newPosition,
+            spacing: 20,
+            maxWidth: targetSize.width,
+            aspectRatio: finalAspectRatio,
+            count: 1,
+            customWidth: targetSize.width,
+            customHeight: targetSize.height
+          });
+
+          if (newPlaceholders.length > 0) {
+            const newPlaceholder = newPlaceholders[0];
+            placeholders.push(newPlaceholder); // 添加到占位符数组
+
+            // 立即替换为真实图片
+            const [width, height] = result.size.split('x').map(Number);
+            replacePlaceholderWithImage(board, newPlaceholder, {
+              url: result.url,
+              width,
+              height,
+              size: result.size
+            });
+
+            console.log(`✅ 成功创建并替换第${result.index + 1}张图片:`, result.url);
+          }
         }
       }
     );
