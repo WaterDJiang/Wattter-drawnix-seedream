@@ -91,12 +91,14 @@ export function getImageSize(imageElement: PlaitElement): { width: number; heigh
   if (!PlaitDrawElement.isImage(imageElement)) {
     return null;
   }
-  
+
   const imageItem = (imageElement as any).imageItem;
-  return {
-    width: imageItem?.width || 300,
-    height: imageItem?.height || 300
-  };
+  const width = imageItem?.width || 1024; // 默认1024，确保满足最小像素要求
+  const height = imageItem?.height || 1024;
+
+  console.log('🎨 获取图片尺寸:', { imageItem, width, height, pixels: width * height });
+
+  return { width, height };
 }
 
 /**
@@ -245,7 +247,7 @@ export async function generateImageToImage(
     prompt: request.prompt,
     // 豆包API：单图用字符串，多图用数组
     image: request.images.length === 1 ? request.images[0] : request.images,
-    size: request.size || "2K", // 豆包API支持 "2K" 或具体像素值
+    size: "2K", // 豆包API使用预设尺寸，让API自动选择合适的分辨率
     response_format: "url",
     watermark: request.watermark || false,
     stream: true,

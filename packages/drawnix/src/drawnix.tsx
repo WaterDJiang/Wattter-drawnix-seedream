@@ -50,6 +50,43 @@ import {
 } from './utils/image-to-image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from './utils/add-generated-image';
 
+// 将宽高比转换为2K分辨率的具体像素尺寸
+const convertAspectRatioToPixelSize = (aspectRatio: string): string => {
+  if (aspectRatio === 'auto') {
+    return '2K'; // 让AI自动决定
+  }
+
+  if (aspectRatio === 'custom') {
+    // 图生图暂不支持自定义尺寸，使用默认
+    return '2048x2048';
+  }
+
+  const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+  if (!widthRatio || !heightRatio) {
+    return '2K';
+  }
+
+  // 基于2K分辨率计算具体像素
+  const baseResolution = 2048;
+  let width: number, height: number;
+
+  if (widthRatio >= heightRatio) {
+    // 横版或正方形：长边为2048
+    width = baseResolution;
+    height = Math.round((heightRatio / widthRatio) * baseResolution);
+  } else {
+    // 竖版：短边基于长边计算
+    height = baseResolution;
+    width = Math.round((widthRatio / heightRatio) * baseResolution);
+  }
+
+  // 确保像素值是8的倍数（AI生成图片的常见要求）
+  width = Math.round(width / 8) * 8;
+  height = Math.round(height / 8) * 8;
+
+  return `${width}x${height}`;
+};
+
 // 加载设置的函数
 // 根据环境决定API端点
 const getDefaultEndpoint = () => {
@@ -71,44 +108,32 @@ async function handleImageToImageGeneration(
     console.log('🎨 开始处理图生图生成');
 
     // 获取当前AI输入框选择的宽高比
-    // 从AI输入组件的按钮文本获取当前选择的宽高比
+    // 从AI输入组件的比例按钮获取当前选择的宽高比
     let selectedAspectRatio = '3:4'; // 默认比例
 
-    const ratioButton = document.querySelector('.ai-input .ratio-button');
+    const ratioButton = document.querySelector('.ai-ratio-current');
     if (ratioButton) {
       const buttonText = ratioButton.textContent?.trim();
       if (buttonText && buttonText.includes(':')) {
         selectedAspectRatio = buttonText;
+      } else if (buttonText === '智能') {
+        selectedAspectRatio = 'auto';
       }
     }
 
     console.log('🎨 使用宽高比:', selectedAspectRatio);
 
-    // 获取第一张选中图片的信息作为参考
-    const firstImage = selectedImages[0];
-    const referenceSize = getImageSize(firstImage);
-    const referenceAspectRatio = getImageAspectRatio(firstImage);
+    // 使用AI对话框的比例设置来确定生成图片的尺寸
+    const apiSize = convertAspectRatioToPixelSize(selectedAspectRatio);
 
-    console.log('🎨 参考图片信息:', { referenceSize, referenceAspectRatio });
-
-    // 直接使用选中图片的实际尺寸
-    let targetSize = referenceSize;
-
-    // 确保满足豆包API的最小尺寸要求（921600像素）
-    const minPixels = 921600;
-    const currentPixels = targetSize.width * targetSize.height;
-
-    if (currentPixels < minPixels) {
-      // 按比例放大到满足最小像素要求
-      const scale = Math.sqrt(minPixels / currentPixels);
-      targetSize = {
-        width: Math.round(targetSize.width * scale),
-        height: Math.round(targetSize.height * scale)
-      };
-      console.log('🎨 图片尺寸过小，按比例放大到:', targetSize);
+    // 解析尺寸用于创建占位符
+    let targetSize: { width: number; height: number };
+    if (apiSize === '2K') {
+      targetSize = { width: 2048, height: 2048 }; // 默认正方形
+    } else {
+      const [width, height] = apiSize.split('x').map(Number);
+      targetSize = { width, height };
     }
-
-    const apiSize = formatSizeForAPI(targetSize);
 
     console.log('🎨 目标尺寸:', { targetSize, apiSize, pixels: targetSize.width * targetSize.height });
 
@@ -129,6 +154,7 @@ async function handleImageToImageGeneration(
     console.log('🎨 图片URLs:', imageUrls);
 
     // 计算占位符位置（在选中图片区域的右侧）
+    const firstImage = selectedImages[0];
     const firstImageRect = RectangleClient.getRectangleByPoints(firstImage.points);
     const placeholderPosition: [number, number] = [
       firstImageRect.x + firstImageRect.width + 20, // 右侧20px间距
