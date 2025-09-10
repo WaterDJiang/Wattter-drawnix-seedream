@@ -16,6 +16,7 @@ export interface ImageToImageResponse {
   index: number;
   url: string;
   size: string;
+  totalImages?: number; // 总图片数量，用于多图生成时提前创建占位符
 }
 
 /**

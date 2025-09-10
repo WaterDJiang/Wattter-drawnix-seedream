@@ -205,9 +205,59 @@ async function handleImageToImageGeneration(
       (result) => {
         console.log('🎨 收到图生图结果:', result);
 
-        // 如果是第一张图片，替换现有占位符
-        if (result.index === 0 && placeholders[0]) {
-          const placeholder = placeholders[0];
+        // 如果是第二张图片（index=1），说明API返回了多张图片，立即创建第2个占位符
+        if (result.index === 1 && placeholders.length === 1) {
+          console.log(`🎨 检测到多图生成，创建第2张图片的占位符`);
+
+          const newPosition: [number, number] = [
+            placeholderPosition[0] + 1 * (targetSize.width + 20),
+            placeholderPosition[1]
+          ];
+
+          const newPlaceholders = createImagePlaceholders(board, {
+            position: newPosition,
+            spacing: 20,
+            maxWidth: Math.min(targetSize.width, 300),
+            aspectRatio: 'custom',
+            count: 1,
+            customWidth: targetSize.width,
+            customHeight: targetSize.height
+          });
+
+          if (newPlaceholders.length > 0) {
+            placeholders.push(newPlaceholders[0]);
+            console.log(`🎨 创建第2张图片的占位符`);
+          }
+        }
+
+        // 如果是第三张及以后的图片，继续创建占位符
+        if (result.index >= 2 && placeholders.length <= result.index) {
+          console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
+
+          const newPosition: [number, number] = [
+            placeholderPosition[0] + result.index * (targetSize.width + 20),
+            placeholderPosition[1]
+          ];
+
+          const newPlaceholders = createImagePlaceholders(board, {
+            position: newPosition,
+            spacing: 20,
+            maxWidth: Math.min(targetSize.width, 300),
+            aspectRatio: 'custom',
+            count: 1,
+            customWidth: targetSize.width,
+            customHeight: targetSize.height
+          });
+
+          if (newPlaceholders.length > 0) {
+            placeholders.push(newPlaceholders[0]);
+            console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
+          }
+        }
+
+        // 替换对应索引的占位符
+        if (placeholders[result.index]) {
+          const placeholder = placeholders[result.index];
           const [originalWidth, originalHeight] = result.size.split('x').map(Number);
 
           // 缩小4倍插入，使画布更美观
@@ -222,49 +272,9 @@ async function handleImageToImageGeneration(
             size: result.size
           });
 
-          console.log('✅ 成功替换第一个占位符为真实图片:', result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
-        }
-        // 如果是后续图片，动态创建新占位符并立即替换
-        else if (result.index > 0) {
-          console.log(`🎨 创建第${result.index + 1}张图片的占位符`);
-
-          // 计算新占位符的位置（在第一个占位符右侧）
-          const newPosition: [number, number] = [
-            placeholderPosition[0] + result.index * (targetSize.width + 20),
-            placeholderPosition[1]
-          ];
-
-          // 创建新占位符
-          const newPlaceholders = createImagePlaceholders(board, {
-            position: newPosition,
-            spacing: 20,
-            maxWidth: Math.min(targetSize.width, 300), // 限制占位符最大宽度为300px
-            aspectRatio: 'custom', // 使用自定义比例
-            count: 1,
-            customWidth: targetSize.width,
-            customHeight: targetSize.height
-          });
-
-          if (newPlaceholders.length > 0) {
-            const newPlaceholder = newPlaceholders[0];
-            placeholders.push(newPlaceholder); // 添加到占位符数组
-
-            // 立即替换为真实图片
-            const [originalWidth, originalHeight] = result.size.split('x').map(Number);
-
-            // 缩小4倍插入，使画布更美观
-            const displayWidth = Math.round(originalWidth / 4);
-            const displayHeight = Math.round(originalHeight / 4);
-
-            replacePlaceholderWithImage(board, newPlaceholder, {
-              url: result.url,
-              width: displayWidth,
-              height: displayHeight,
-              size: result.size
-            });
-
-            console.log(`✅ 成功创建并替换第${result.index + 1}张图片:`, result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
-          }
+          console.log(`✅ 成功替换第${result.index + 1}张图片:`, result.url, `尺寸: ${originalWidth}x${originalHeight} → ${displayWidth}x${displayHeight}`);
+        } else {
+          console.warn(`⚠️ 未找到索引为${result.index}的占位符`);
         }
       }
     );
