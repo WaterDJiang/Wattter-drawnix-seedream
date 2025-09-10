@@ -3,11 +3,7 @@
   "outputDirectory": "dist/apps/web",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "api/generate-image.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
+
   "rewrites": [
     {
       "source": "/api/(.*)",
