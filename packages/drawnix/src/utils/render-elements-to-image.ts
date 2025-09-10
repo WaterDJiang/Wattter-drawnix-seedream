@@ -1,4 +1,4 @@
-import { PlaitBoard, PlaitElement } from '@plait/core';
+import { PlaitBoard, PlaitElement, RectangleClient, toImage } from '@plait/core';
 import { PlaitDrawElement } from '@plait/draw';
 import { Freehand } from '../plugins/freehand/type';
 
@@ -33,17 +33,34 @@ export async function renderElementsToImage(
     throw new Error('没有元素需要渲染');
   }
 
-  console.log('🎨 开始渲染元素为图片 (简化实现):', elements.length, '个元素');
+  console.log('🎨 开始渲染元素为图片:', elements.length, '个元素');
+  console.log('🎨 元素类型:', elements.map(el => ({
+    id: el.id,
+    type: (el as any).type || 'unknown',
+    isFreehand: Freehand.isFreehand(el),
+    isDrawElement: PlaitDrawElement.isDrawElement(el)
+  })));
 
   try {
-    // 使用简化的占位符实现，避免任何可能的副作用
-    const placeholderImageUrl = createSimplePlaceholderImage();
-    console.log('✅ 创建简化占位符图片完成');
+    // 使用Plait的toImage功能渲染选中的元素
+    const imageDataUrl = await toImage(board, {
+      elements: elements,
+      fillStyle: 'transparent', // 透明背景
+      padding: 20, // 添加一些边距
+      ratio: 2, // 高分辨率
+    });
 
-    return placeholderImageUrl;
+    if (!imageDataUrl) {
+      console.warn('⚠️ toImage返回空结果，使用占位符');
+      return createSimplePlaceholderImage();
+    }
+
+    console.log('✅ 成功渲染元素为图片:', imageDataUrl.substring(0, 50) + '...');
+    return imageDataUrl;
   } catch (error) {
     console.error('❌ 渲染元素为图片失败:', error);
-    throw new Error(`渲染失败: ${error.message}`);
+    console.log('🔄 降级到占位符图片');
+    return createSimplePlaceholderImage();
   }
 }
 

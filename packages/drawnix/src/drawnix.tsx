@@ -49,6 +49,7 @@ import {
   formatSizeForAPI
 } from './utils/image-to-image-generation';
 import { createImagePlaceholders, replacePlaceholderWithImage } from './utils/add-generated-image';
+import { renderElementsToImage } from './utils/render-elements-to-image';
 
 // 将宽高比转换为2K分辨率的具体像素尺寸
 const convertAspectRatioToPixelSize = (aspectRatio: string): string => {
@@ -102,10 +103,29 @@ async function handleImageToImageGeneration(
   board: PlaitBoard,
   prompt: string,
   selectedImages: PlaitElement[],
-  appState: DrawnixState
+  appState: DrawnixState,
+  selectedRenderableElements?: PlaitElement[]
 ) {
   try {
     console.log('🎨 开始处理图生图生成');
+    console.log('🎨 选中图片数量:', selectedImages.length);
+    console.log('🎨 选中可渲染元素数量:', selectedRenderableElements?.length || 0);
+
+    // 处理可渲染元素：将它们渲染成图片
+    let allImageUrls: string[] = [];
+
+    // 首先处理可渲染元素（如果有的话）
+    if (selectedRenderableElements && selectedRenderableElements.length > 0) {
+      console.log('🎨 开始渲染非图片元素为图片...');
+      try {
+        const renderedImageUrl = await renderElementsToImage(board, selectedRenderableElements);
+        allImageUrls.push(renderedImageUrl);
+        console.log('✅ 成功渲染非图片元素为图片');
+      } catch (error) {
+        console.error('❌ 渲染非图片元素失败:', error);
+        // 继续执行，不中断流程
+      }
+    }
 
     // 获取当前AI输入框选择的宽高比
     // 从AI输入组件的比例按钮获取当前选择的宽高比
@@ -178,28 +198,33 @@ async function handleImageToImageGeneration(
       };
     }));
 
-    // 获取排序后图片的URLs
-    const imageUrls: string[] = [];
+    // 获取排序后图片的URLs，并与渲染的图片URL合并
     for (const image of sortedImages) {
       const url = getImageUrl(image);
       if (url) {
-        imageUrls.push(url);
+        allImageUrls.push(url);
       }
     }
 
-    if (imageUrls.length === 0) {
-      console.error('❌ 没有找到有效的图片URL');
+    if (allImageUrls.length === 0) {
+      console.error('❌ 没有找到有效的图片URL（包括渲染的图片）');
       return;
     }
 
-    console.log('🎨 图片URLs顺序:', imageUrls.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
+    console.log('🎨 所有图片URLs顺序:', allImageUrls.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
 
-    // 计算占位符位置（在选中图片区域的右侧）
-    const firstImage = selectedImages[0];
-    const firstImageRect = RectangleClient.getRectangleByPoints(firstImage.points);
+    // 计算占位符位置（在选中元素区域的右侧）
+    // 优先使用图片元素，如果没有图片则使用可渲染元素
+    const referenceElement = selectedImages[0] || selectedRenderableElements?.[0];
+    if (!referenceElement) {
+      console.error('❌ 没有找到参考元素来计算占位符位置');
+      return;
+    }
+
+    const referenceRect = RectangleClient.getRectangleByPoints(referenceElement.points);
     const placeholderPosition: [number, number] = [
-      firstImageRect.x + firstImageRect.width + 20, // 右侧20px间距
-      firstImageRect.y
+      referenceRect.x + referenceRect.width + 20, // 右侧20px间距
+      referenceRect.y
     ];
 
     console.log('🎨 占位符位置:', placeholderPosition);
@@ -229,7 +254,7 @@ async function handleImageToImageGeneration(
     await generateImageToImage(
       {
         prompt,
-        images: imageUrls,
+        images: allImageUrls,
         size: apiSize,
         watermark: settings.watermarkEnabled,
         apiKey: settings.apiKey,
@@ -525,7 +550,13 @@ export const Drawnix: React.FC<DrawnixProps> = ({
 
                   // 调用图生图处理函数
                   if (board) {
-                    await handleImageToImageGeneration(board, prompt, images, appState);
+                    await handleImageToImageGeneration(
+                      board,
+                      prompt,
+                      images,
+                      appState,
+                      appState.imageToImageDialog?.selectedRenderableElements
+                    );
                   }
                 }}
               />
