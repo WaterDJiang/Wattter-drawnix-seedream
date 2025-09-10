@@ -138,7 +138,7 @@ export const AIInput: React.FC<AIInputProps> = ({
 
       let placeholders: PlaitElement[] = [];
       try {
-        placeholders = await createImagePlaceholders(board, 1, options);
+        placeholders = createImagePlaceholders(board, { ...options, count: 1 });
         console.error('🚀 [DEBUG] createImagePlaceholders 返回了:', placeholders);
       } catch (error) {
         console.error('🚀 [DEBUG] createImagePlaceholders 抛出错误:', error);
