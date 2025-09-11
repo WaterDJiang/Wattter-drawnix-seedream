@@ -60,16 +60,39 @@ const handleImageGeneration = (req, res) => {
       const maxImages = requestData.maxImages || 20; // 默认最大20张，让AI自由决定生成数量
 
       // 豆包API的size参数处理
-      // 根据API文档，豆包API支持"2K"格式，暂时统一使用这个格式避免400错误
-      let apiSize = '2K';
+      let apiSize = requestData.size || '2K';
 
-      // 如果前端明确传入了"2K"，直接使用
+      // 如果是"2K"或"auto"，直接使用
       if (requestData.size === '2K' || requestData.size === 'auto') {
         apiSize = '2K';
       } else if (typeof requestData.size === 'string' && requestData.size.includes('x')) {
-        // 对于像素格式，暂时都映射到2K，避免API参数错误
-        // TODO: 后续可以根据豆包API文档支持更多尺寸
-        apiSize = '2K';
+        // 尝试支持常见的像素格式，如果不支持再回退到2K
+        const [width, height] = requestData.size.split('x').map(Number);
+        if (width && height) {
+          // 支持一些常见的尺寸组合
+          const commonSizes = [
+            '1024x1024', '1536x1024', '1024x1536',  // 1K系列
+            '2048x2048', '1536x2048', '2048x1536',  // 2K系列
+            '1792x1024', '1024x1792',               // 16:9比例
+            '1344x768', '768x1344'                  // 其他比例
+          ];
+
+          if (commonSizes.includes(requestData.size)) {
+            apiSize = requestData.size;
+          } else {
+            // 如果不在支持列表中，映射到最接近的标准尺寸
+            if (width <= 1024 && height <= 1024) {
+              apiSize = '1024x1024';
+            } else if (width <= 1536 && height <= 2048) {
+              // 保持原始尺寸，让API尝试处理
+              apiSize = requestData.size;
+            } else {
+              apiSize = '2K';
+            }
+          }
+        } else {
+          apiSize = '2K';
+        }
       }
 
       console.log('🎨 API代理：原始size:', requestData.size, '处理后size:', apiSize);
