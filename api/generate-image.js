@@ -42,12 +42,20 @@ module.exports = (req, res) => {
 
 const handleImageGeneration = (req, res) => {
   try {
+    console.log('🚀 [API] 收到图片生成请求');
+    console.log('🚀 [API] 请求方法:', req.method);
+    console.log('🚀 [API] 请求头:', JSON.stringify(req.headers, null, 2));
+
     // Vercel automatically parses JSON body
     const requestData = req.body || {};
+    console.log('🚀 [API] 请求体:', JSON.stringify(requestData, null, 2));
 
     // 检查客户端是否提供了API密钥
     const apiKey = requestData.apiKey;
+    console.log('🚀 [API] API密钥检查:', apiKey ? '已提供' : '未提供');
+
     if (!apiKey) {
+      console.error('🚨 [API] API密钥未提供');
       res.status(400);
       Object.keys(corsHeaders).forEach(key => {
         res.setHeader(key, corsHeaders[key]);
@@ -95,7 +103,7 @@ const handleImageGeneration = (req, res) => {
         }
       }
 
-      console.log('🎨 API代理：原始size:', requestData.size, '处理后size:', apiSize);
+      console.log('🎨 [API] 原始size:', requestData.size, '处理后size:', apiSize);
 
       const volcengineRequestData = {
         model: requestData.model || 'doubao-seedream-4-0-250828',
@@ -106,23 +114,28 @@ const handleImageGeneration = (req, res) => {
         watermark: requestData.watermark !== false
       };
 
+      console.log('🎨 [API] 基础请求数据构建完成:', JSON.stringify(volcengineRequestData, null, 2));
+
       // 处理图片参数（支持单图和多图）
       if (requestData.image) {
         volcengineRequestData.image = requestData.image;
-        console.log('🎨 API代理：处理图生图请求，图片数量:', Array.isArray(requestData.image) ? requestData.image.length : 1);
+        console.log('🎨 [API] 处理图生图请求，图片数量:', Array.isArray(requestData.image) ? requestData.image.length : 1);
         if (Array.isArray(requestData.image)) {
-          console.log('🎨 API代理：图片顺序:', requestData.image.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
+          console.log('🎨 [API] 图片顺序:', requestData.image.map((url, index) => ({ index, url: url.substring(0, 50) + '...' })));
         }
       }
 
       // 根据生成图片数量决定是否启用序列生成
+      console.log('🎨 [API] maxImages:', maxImages, '是否启用序列生成:', maxImages > 1);
       if (maxImages > 1) {
         volcengineRequestData.sequential_image_generation = 'auto';
         volcengineRequestData.sequential_image_generation_options = {
           max_images: maxImages
         };
+        console.log('🎨 [API] 启用序列生成，最大图片数:', maxImages);
       } else {
         volcengineRequestData.sequential_image_generation = 'disabled';
+        console.log('🎨 [API] 禁用序列生成');
       }
 
       const postData = JSON.stringify(volcengineRequestData);
@@ -209,12 +222,13 @@ const handleImageGeneration = (req, res) => {
     proxyReq.end();
 
   } catch (error) {
-    console.error('Request parsing error:', error);
-    res.status(400);
+    console.error('🚨 [API] 请求处理错误:', error);
+    console.error('🚨 [API] 错误堆栈:', error.stack);
+    res.status(500);
     Object.keys(corsHeaders).forEach(key => {
       res.setHeader(key, corsHeaders[key]);
     });
-    res.json({ error: 'Invalid request body' });
+    res.json({ error: 'Internal server error', details: error.message });
   }
 };
 
