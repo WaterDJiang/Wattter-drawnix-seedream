@@ -58,11 +58,27 @@ const handleImageGeneration = (req, res) => {
 
       // Prepare request to Volcengine API
       const maxImages = requestData.maxImages || 20; // 默认最大20张，让AI自由决定生成数量
+
+      // 豆包API的size参数处理
+      // 根据API文档，豆包API支持"2K"格式，暂时统一使用这个格式避免400错误
+      let apiSize = '2K';
+
+      // 如果前端明确传入了"2K"，直接使用
+      if (requestData.size === '2K' || requestData.size === 'auto') {
+        apiSize = '2K';
+      } else if (typeof requestData.size === 'string' && requestData.size.includes('x')) {
+        // 对于像素格式，暂时都映射到2K，避免API参数错误
+        // TODO: 后续可以根据豆包API文档支持更多尺寸
+        apiSize = '2K';
+      }
+
+      console.log('🎨 API代理：原始size:', requestData.size, '处理后size:', apiSize);
+
       const volcengineRequestData = {
         model: requestData.model || 'doubao-seedream-4-0-250828',
         prompt: requestData.prompt,
         response_format: 'url',
-        size: requestData.size || '2K',
+        size: apiSize,
         stream: true,
         watermark: requestData.watermark !== false
       };
