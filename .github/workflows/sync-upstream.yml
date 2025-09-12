@@ -22,8 +22,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Add upstream remote
-        run: |
-          git remote add upstream https://github.com/plait-board/drawnix.git || true
+        run: |# 添加上游远程仓库
+        git remote add upstream https://github.com/joeseesun/drawnix-seedream.git || true
           git fetch upstream
 
       - name: Sync develop branch

@@ -124,7 +124,7 @@ bash scripts/setup-fork-dev.sh
 
 ```bash
 # 1. 添加上游仓库
-git remote add upstream https://github.com/plait-board/drawnix.git
+git remote add upstream https://github.com/joeseesun/drawnix-seedream.git
 
 # 2. 获取上游代码
 git fetch upstream

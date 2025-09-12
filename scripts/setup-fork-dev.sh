@@ -27,7 +27,7 @@ if git remote | grep -q "upstream"; then
     echo -e "${GREEN}✅ upstream 远程仓库已配置${NC}"
 else
     echo -e "${YELLOW}⚙️  添加 upstream 远程仓库...${NC}"
-    git remote add upstream https://github.com/plait-board/drawnix.git
+    git remote add upstream https://github.com/joeseesun/drawnix-seedream.git
     echo -e "${GREEN}✅ upstream 远程仓库添加成功${NC}"
 fi
 
