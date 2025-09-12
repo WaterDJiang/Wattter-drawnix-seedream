@@ -19,8 +19,8 @@ git remote -v
 # 应该看到：
 # origin    https://github.com/WaterDJiang/Wattter-drawnix-seedream (fetch)
 # origin    https://github.com/WaterDJiang/Wattter-drawnix-seedream (push)
-# upstream  https://github.com/joeseesun/drawnix-seedream.git (fetch)
-# upstream  https://github.com/joeseesun/drawnix-seedream.git (push)
+# upstream  https://github.com/plait-board/drawnix.git (fetch)
+# upstream  https://github.com/plait-board/drawnix.git (push)
 ```
 
 ## 🔄 同步上游更新

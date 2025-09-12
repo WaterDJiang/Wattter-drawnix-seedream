@@ -93,9 +93,9 @@ const convertAspectRatioToPixelSize = (aspectRatio: string): string => {
 const getDefaultEndpoint = () => {
   if (typeof window !== 'undefined') {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isLocalDev ? 'http://localhost:3001/generate-image' : '/api/generate-image';
+    return isLocalDev ? 'http://localhost:3000/generate-image' : '/generate-image';
   }
-  return '/api/generate-image';
+  return '/generate-image';
 };
 
 // 处理图生图生成

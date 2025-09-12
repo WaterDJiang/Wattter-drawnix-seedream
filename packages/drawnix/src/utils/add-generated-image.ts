@@ -22,10 +22,10 @@ export interface AddGeneratedImageOptions {
 const getImageProxyUrl = (imageUrl: string) => {
   if (typeof window !== 'undefined') {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const proxyBase = isLocalDev ? 'http://localhost:3001/image-proxy' : '/api/image-proxy';
+    const proxyBase = isLocalDev ? 'http://localhost:3000/image-proxy' : '/image-proxy';
     return `${proxyBase}?url=${encodeURIComponent(imageUrl)}`;
   }
-  return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  return `/image-proxy?url=${encodeURIComponent(imageUrl)}`;
 };
 
 /**

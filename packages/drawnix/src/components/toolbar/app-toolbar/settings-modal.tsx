@@ -20,9 +20,9 @@ interface SettingsModalProps {
 const getDefaultEndpoint = () => {
   if (typeof window !== 'undefined') {
     const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    return isLocalDev ? 'http://localhost:3001/generate-image' : '/api/generate-image';
+    return isLocalDev ? 'http://localhost:3000/generate-image' : '/generate-image';
   }
-  return '/api/generate-image';
+  return '/generate-image';
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -65,6 +65,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     if (!settings.apiKey.trim()) {
       newErrors.apiKey = 'API密钥不能为空';
+    } else if (settings.apiKey.trim().length < 10) {
+      newErrors.apiKey = 'API密钥格式无效，请检查是否完整';
+    } else if (!settings.apiKey.startsWith('sk-') && !settings.apiKey.includes('-')) {
+      newErrors.apiKey = 'API密钥格式可能不正确，请确认是否为有效的豆包API密钥';
     }
 
     // 只有在显示高级设置时才验证这些字段
@@ -130,6 +134,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             
             <div className="settings-field">
               <label htmlFor="apiKey">API密钥</label>
+              <div className="settings-field-description">
+                <div className="settings-help-box">
+                  <p className="settings-help-title">📋 配置步骤：</p>
+                  <ol className="settings-help-steps">
+                    <li>访问 <a href="https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey" target="_blank" rel="noopener noreferrer" className="settings-link">火山引擎控制台</a></li>
+                    <li>登录您的账号并进入API密钥管理页面</li>
+                    <li>创建新的API密钥或复制现有密钥</li>
+                    <li>将密钥粘贴到下方输入框中</li>
+                  </ol>
+                  <p className="settings-help-tip">💡 提示：API密钥通常以"sk-"开头或包含连字符</p>
+                </div>
+              </div>
               <div className="settings-input-with-toggle">
                 <input
                   id="apiKey"
@@ -138,7 +154,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onChange={(e) => setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
                   onBlur={() => validateSettings()}
                   className={`settings-input ${errors.apiKey ? 'settings-input--error' : ''}`}
-                  placeholder="输入API密钥"
+                  placeholder="输入豆包Seedream API密钥"
                 />
                 <button
                   type="button"
@@ -150,7 +166,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
               {errors.apiKey && (
-                <span className="settings-field-error">{errors.apiKey}</span>
+                <div className="settings-error-box">
+                  <span className="settings-field-error">❌ {errors.apiKey}</span>
+                  <p className="settings-error-help">请检查API密钥是否正确复制，确保没有多余的空格或字符。</p>
+                </div>
+              )}
+              {!errors.apiKey && settings.apiKey && (
+                <div className="settings-success-box">
+                  <span className="settings-field-success">✅ API密钥配置成功！现在可以开始生成图片了。</span>
+                </div>
               )}
             </div>
             

@@ -256,9 +256,14 @@ export async function generateImageToImage(
   onProgress?: (response: ImageToImageResponse) => void
 ): Promise<ImageToImageResponse[]> {
   // 根据环境选择API端点
-  const apiEndpoint = process.env.NODE_ENV === 'development'
-    ? 'http://localhost:3001/generate-image'
-    : '/api/generate-image';
+  const getApiEndpoint = () => {
+    if (typeof window !== 'undefined') {
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      return isLocalDev ? 'http://localhost:3000/generate-image' : '/generate-image';
+    }
+    return '/generate-image';
+  };
+  const apiEndpoint = getApiEndpoint();
 
   // 根据豆包Seedream API文档格式化请求
   const requestBody: any = {
@@ -303,7 +308,22 @@ export async function generateImageToImage(
     } catch (e) {
       console.error('🔥 无法读取错误响应');
     }
-    throw new Error(`图生图API请求失败: ${response.status} ${response.statusText}. 响应: ${errorText}`);
+    
+    let errorMessage = `图生图API请求失败: ${response.status} ${response.statusText}`;
+    
+    if (response.status === 401) {
+      errorMessage = 'API密钥无效或已过期，请检查设置中的API密钥配置';
+    } else if (response.status === 403) {
+      errorMessage = 'API访问被拒绝，请检查API密钥权限';
+    } else if (response.status === 429) {
+      errorMessage = 'API请求频率过高，请稍后重试';
+    } else if (response.status >= 500) {
+      errorMessage = 'API服务暂时不可用，请稍后重试';
+    } else {
+      errorMessage += `. 响应: ${errorText}`;
+    }
+    
+    throw new Error(errorMessage);
   }
 
   const reader = response.body?.getReader();

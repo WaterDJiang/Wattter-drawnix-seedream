@@ -41,6 +41,28 @@ module.exports = (req, res) => {
 
 
 const handleImageGeneration = (req, res) => {
+  let responseHandled = false; // 添加响应状态跟踪
+  
+  const sendResponse = (statusCode, data) => {
+    if (responseHandled) {
+      console.warn('⚠️ 尝试重复发送响应，已忽略');
+      return;
+    }
+    responseHandled = true;
+    
+    if (!res.headersSent) {
+      res.status(statusCode);
+      Object.keys(corsHeaders).forEach(key => {
+        res.setHeader(key, corsHeaders[key]);
+      });
+      if (typeof data === 'object') {
+        res.json(data);
+      } else {
+        res.end(data);
+      }
+    }
+  };
+  
   try {
     // Vercel automatically parses JSON body
     const requestData = req.body || {};
@@ -48,11 +70,7 @@ const handleImageGeneration = (req, res) => {
     // 检查客户端是否提供了API密钥
     const apiKey = requestData.apiKey;
     if (!apiKey) {
-      res.status(400);
-      Object.keys(corsHeaders).forEach(key => {
-        res.setHeader(key, corsHeaders[key]);
-      });
-      res.json({ error: 'API密钥未提供，请在设置中配置API密钥' });
+      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥' });
       return;
     }
 
@@ -142,11 +160,7 @@ const handleImageGeneration = (req, res) => {
     proxyReq.on('error', (error) => {
       console.error('🚨 代理请求错误:', error);
       console.error('🚨 错误详情:', error.message, error.code, error.stack);
-      res.status(500);
-      Object.keys(corsHeaders).forEach(key => {
-        res.setHeader(key, corsHeaders[key]);
-      });
-      res.json({
+      sendResponse(500, {
         error: 'Proxy request failed',
         details: error.message,
         code: error.code
@@ -157,25 +171,15 @@ const handleImageGeneration = (req, res) => {
     proxyReq.setTimeout(25000, () => {
       console.error('🚨 请求超时');
       proxyReq.destroy();
-      if (!res.headersSent) {
-        res.status(500);
-        Object.keys(corsHeaders).forEach(key => {
-          res.setHeader(key, corsHeaders[key]);
-        });
-        res.json({ error: 'Request timeout' });
-      }
+      sendResponse(500, { error: 'Request timeout' });
     });
 
     proxyReq.write(postData);
     proxyReq.end();
 
   } catch (error) {
-    console.error('Request parsing error:', error);
-    res.status(400);
-    Object.keys(corsHeaders).forEach(key => {
-      res.setHeader(key, corsHeaders[key]);
-    });
-    res.json({ error: 'Invalid request body' });
+    console.error('🚨 处理请求时发生错误:', error);
+    sendResponse(500, { error: 'Internal server error', details: error.message });
   }
 };
 
