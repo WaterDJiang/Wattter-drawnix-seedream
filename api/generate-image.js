@@ -1,5 +1,5 @@
 // Vercel serverless function for image generation API
-const https = require('https');
+import https from 'https';
 
 const VOLCENGINE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 
@@ -12,7 +12,7 @@ const corsHeaders = {
 };
 
 // Main Vercel function handler
-module.exports = (req, res) => {
+export default function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.status(200);

@@ -43,3 +43,7 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Docker images
+*.tar
+drawnix-*.tar
