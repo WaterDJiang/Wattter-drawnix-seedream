@@ -1,3 +1,41 @@
-.nx
+# Build artifacts and dependencies
+# .nx - commented out as it may be needed for build
 .dist
 .node_modules
+dist/
+
+# Development tools and IDE configurations
+.vscode/
+.github/
+.trae/
+
+# Testing
+apps/web-e2e/
+jest.config.ts
+jest.preset.js
+
+# Documentation and README files
+*.md
+docs/
+LICENSE
+
+# Development scripts and deployment
+scripts/
+deploy-vercel.sh
+
+# Configuration files (development only)
+.editorconfig
+.eslintrc.json
+.eslintignore
+.prettierrc
+.prettierignore
+vercel.json
+# Note: tsconfig.base.json and nx.json are needed for build
+
+# Generated Docker images
+*.tar
+*.tar.gz
+
+# Git files
+.git
+.gitignore

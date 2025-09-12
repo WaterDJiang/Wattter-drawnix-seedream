@@ -1,0 +1,65 @@
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const PORT = 3000;
+
+// 启用CORS
+app.use(cors());
+
+// 解析JSON请求体
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// 静态文件服务 - 服务前端构建产物
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 导入API路由
+const generateImageHandler = require('./api/generate-image.js');
+const imageProxyHandler = require('./api/image-proxy.js');
+
+// API路由
+app.all('/generate-image', (req, res) => {
+  console.log(`🚀 收到${req.method}请求: /generate-image`);
+  generateImageHandler(req, res);
+});
+
+app.all('/image-proxy', (req, res) => {
+  console.log(`🚀 收到${req.method}请求: /image-proxy`);
+  imageProxyHandler(req, res);
+});
+
+// 健康检查
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// 处理前端路由 - 所有非API请求都返回index.html
+app.use((req, res, next) => {
+  // 跳过API路由和静态文件
+  if (req.path.startsWith('/api/') || req.path.startsWith('/generate-image') || req.path.startsWith('/image-proxy') || req.path.startsWith('/health') || req.path.includes('.')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 启动服务器
+app.listen(PORT, () => {
+  console.log(`🚀 API服务器已启动`);
+  console.log(`🌐 服务地址: http://localhost:${PORT}`);
+  console.log(`🔗 图片生成API: http://localhost:${PORT}/generate-image`);
+  console.log(`🔗 图片代理API: http://localhost:${PORT}/image-proxy`);
+  console.log(`🔗 健康检查: http://localhost:${PORT}/health`);
+});
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('🛑 收到SIGTERM信号，正在关闭服务器...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 收到SIGINT信号，正在关闭服务器...');
+  process.exit(0);
+});

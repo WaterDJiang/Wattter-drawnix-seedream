@@ -1,5 +1,5 @@
 # 第一阶段：构建前端
-FROM node:20 AS frontend-builder
+FROM --platform=linux/amd64 node:20 AS frontend-builder
 
 WORKDIR /builder
 
@@ -7,12 +7,12 @@ WORKDIR /builder
 COPY package*.json ./
 RUN npm install
 
-# 复制源代码并构建前端
+# 复制源代码并构建前端（.dockerignore会排除不必要的文件）
 COPY . .
 RUN npm run build
 
 # 第二阶段：运行时环境
-FROM node:20-alpine AS runtime
+FROM --platform=linux/amd64 node:20-alpine AS runtime
 
 WORKDIR /app
 
