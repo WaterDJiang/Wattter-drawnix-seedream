@@ -212,8 +212,8 @@ $control-height: 48px;
       0 8px 32px rgba(0, 0, 0, 0.06),
       0 2px 8px rgba(0, 0, 0, 0.04),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    min-width: 460px;
-    max-width: 660px;
+    min-width: 600px;
+    max-width: 900px;
     pointer-events: auto;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -264,13 +264,12 @@ $control-height: 48px;
       
       .ai-input-field-wrapper {
         position: relative;
-        flex: 1.2; // 增加20%宽度
+        flex: 1.5; // 增加50%宽度
         
         .ai-input-field {
           width: 100%;
-          height: $control-height !important;
           min-height: $control-height !important;
-          max-height: $control-height !important;
+          max-height: 120px !important; // 允许最大3行高度
           padding: 10px 14px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
@@ -279,12 +278,13 @@ $control-height: 48px;
           line-height: 1.4;
           color: #1f2937;
           resize: none;
-          overflow: hidden;
+          overflow-y: auto; // 添加垂直滚动
+          overflow-x: hidden; // 隐藏水平滚动
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           box-sizing: border-box;
-          white-space: nowrap;
-          text-overflow: ellipsis;
+          white-space: pre-wrap; // 支持换行
+          word-wrap: break-word; // 自动换行
           box-shadow: 
             0 1px 2px rgba(0, 0, 0, 0.05),
             0 0 0 0px rgba(59, 130, 246, 0);
@@ -1495,4 +1495,519 @@ $control-height: 48px;
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
+}
+
+/* === Prompt模板功能样式 === */
+
+// Prompt模板按钮 - 与其他控件保持一致的设计
+.ai-template-btn {
+  width: $control-height !important;
+  height: $control-height !important;
+  min-height: $control-height !important;
+  max-height: $control-height !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%) !important;
+  color: #6b7280 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  
+  &:hover {
+    border-color: #d1d5db !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+    color: #374151 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+    transform: translateY(-1px) !important;
+  }
+  
+  &:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  }
+}
+
+// 模板弹窗遮罩层
+.ai-template-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+// 模板弹窗主体
+.ai-template-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 90vw;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// 模板弹窗头部
+.ai-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.ai-template-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+// 模板弹窗内容区域
+.ai-template-content {
+  padding: 0;
+  max-height: calc(80vh - 140px);
+  overflow-y: auto;
+}
+
+// 模板分组
+.ai-template-section {
+  padding: 20px 24px;
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  h4 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.ai-template-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  
+  h4 {
+    margin: 0;
+  }
+}
+
+.ai-template-add-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+    color: #3b82f6;
+  }
+}
+
+// 模板列表
+.ai-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// 模板项容器
+.ai-template-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// 模板按钮项
+.ai-template-btn-item {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #3b82f6;
+    background: #f8faff;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.ai-template-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.ai-template-preview {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// 删除按钮
+.ai-template-delete-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    border-color: #ef4444;
+    background: #fef2f2;
+    color: #ef4444;
+  }
+}
+
+// 空状态
+.ai-template-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+  font-style: italic;
+}
+
+// 新增模板弹窗
+.ai-add-template-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ai-add-template-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 90vw;
+  max-width: 500px;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-add-template-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.ai-add-template-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.ai-add-template-content {
+  padding: 24px;
+}
+
+.ai-add-template-field {
+  margin-bottom: 20px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+  }
+}
+
+.ai-add-template-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.ai-add-template-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #ffffff;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.ai-add-template-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.ai-add-template-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  justify-content: flex-end;
+}
+
+.ai-add-template-cancel,
+.ai-add-template-confirm {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.ai-add-template-cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+  
+  &:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+}
+
+.ai-add-template-confirm {
+  background: #3b82f6;
+  color: #ffffff;
+  
+  &:hover:not(:disabled) {
+    background: #2563eb;
+  }
+  
+  &:disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// 移动端响应式设计
+@media (max-width: 768px) {
+  .ai-input-container {
+    min-width: 320px;
+    max-width: calc(100vw - 32px);
+    margin: 0 16px;
+    
+    .ai-input-card {
+      .ai-input-form {
+        .ai-input-row {
+          .ai-input-field-wrapper {
+            flex: 1;
+            min-width: 0;
+          }
+          
+          .ai-controls-group {
+            flex-shrink: 0;
+            gap: 6px;
+            
+            .ai-ratio-selector,
+            .ai-template-btn,
+            .ai-send-btn {
+              width: 36px;
+              height: 36px;
+              
+              svg {
+                width: 16px;
+                height: 16px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 模板弹窗移动端适配
+  .ai-template-modal {
+    width: calc(100vw - 32px);
+    max-width: none;
+    margin: 16px;
+    max-height: calc(100vh - 32px);
+    
+    .ai-template-content {
+      max-height: calc(100vh - 200px);
+    }
+  }
+  
+  // 新增模板弹窗移动端适配
+  .ai-add-template-modal {
+    width: calc(100vw - 32px);
+    max-width: none;
+    margin: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-input-container {
+    min-width: 280px;
+    
+    .ai-input-card {
+      .ai-input-form {
+        .ai-input-row {
+          .ai-controls-group {
+            .ai-ratio-selector,
+            .ai-template-btn,
+            .ai-send-btn {
+              width: 32px;
+              height: 32px;
+              
+              svg {
+                width: 14px;
+                height: 14px;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

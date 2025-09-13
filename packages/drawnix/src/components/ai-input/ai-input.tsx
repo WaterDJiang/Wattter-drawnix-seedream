@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import { useI18n } from '../../i18n';
 import { ToolButton } from '../tool-button';
 // import { SendIcon } from '../icons'; // 使用 lucide-react 的 Send 图标
-import { Paperclip, Send, X, Image, Sparkles, ChevronDown } from 'lucide-react';
+import { Paperclip, Send, X, Image, Sparkles, ChevronDown, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { useBoard } from '@plait-board/react-board';
 import { PlaitElement, getSelectedElements } from '@plait/core';
 import { createImageGenerationAPI, ImageGenerationResult } from '../../utils/image-generation';
@@ -41,15 +41,62 @@ export const AIInput: React.FC<AIInputProps> = ({
   const [showCustomDimensionsModal, setShowCustomDimensionsModal] = useState(false);
   const [customWidth, setCustomWidth] = useState<number>(1024);
   const [customHeight, setCustomHeight] = useState<number>(1024);
+  
+  // Prompt模板相关状态
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showAddTemplateModal, setShowAddTemplateModal] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateContent, setNewTemplateContent] = useState('');
+  const [customTemplates, setCustomTemplates] = useState<Array<{id: string, name: string, content: string}>>([]);
+  
+  // 预设模板数据
+  const presetTemplates = [
+    { id: 'realistic-portrait', name: '写实人像', content: '高质量写实人像摄影，专业打光，细节丰富' },
+    { id: 'cartoon-style', name: '卡通风格', content: '可爱卡通风格插画，色彩鲜艳，简洁线条' },
+    { id: 'landscape-photo', name: '风景摄影', content: '壮丽自然风景，广角镜头，黄金时刻光线' },
+    { id: 'abstract-art', name: '抽象艺术', content: '现代抽象艺术作品，几何图形，渐变色彩' },
+    { id: 'tarot-card', name: '塔罗牌设计', content: '设计一张塔罗牌，用神秘学的象征手法来诠释[集体潜意识]。卡牌需要有经典的装饰性边框，中心是象征性的核心图像，底部有卡牌名称的罗马数字和标题以及中文描述。整体采用神秘、复古的版画风格，色彩象征意义丰富。' },
+    { id: 'rpg-skill-card', name: 'RPG技能卡片', content: '设计一张幻想RPG游戏中的技能卡片，用文字和图像来解释经济学概念\'期货\'。有游戏化的技能名称，卡片上有酷炫的图标、技能描述（用游戏化的语言解释概念）、消耗的\'精力值\'和冷却时间。整体是暗黑奇幻风格，带有发光的魔法符文边框。' },
+    { id: 'xianxia-guide', name: '仙侠古籍图鉴', content: '生成一张仙侠古籍图鉴风格的卡片，向宗门弟子介绍[电脑]。卡牌应采用水墨国风与工笔画相结合的画风，仙气缥缈，色彩淡雅。布局上，中心是主体的精细插图，旁边配有竖排的相对详细的楷体注释。卡牌四周应有祥云或卷草纹的古典边框，背景素净，有大量留白，整体质感如同一本传世秘籍中的一页。' },
+    { id: 'modern-infographic', name: '现代信息图', content: '创作一张现代极简信息图（Infographic），向都市白领解释[番茄工作法]。图片应使用明亮、和谐的色块和简洁的扁平化图标，信息布局要遵循视觉引导，使用无衬线字体标注关键步骤或元素，有相对详细的文字介绍，整体风格要干净、有条理，类似于一个高端商业分析报告中的图表。' }
+  ];
 
-  // Keep textarea at fixed height
+  // 加载自定义模板
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('drawnix-prompt-templates');
+      if (saved) {
+        const templates = JSON.parse(saved);
+        setCustomTemplates(templates);
+      }
+    } catch (error) {
+      console.warn('Failed to load custom templates:', error);
+    }
+  }, []);
+  
+  // 保存自定义模板到localStorage
+  const saveCustomTemplates = (templates: Array<{id: string, name: string, content: string}>) => {
+    try {
+      localStorage.setItem('drawnix-prompt-templates', JSON.stringify(templates));
+      setCustomTemplates(templates);
+    } catch (error) {
+      console.warn('Failed to save custom templates:', error);
+    }
+  };
+
+  // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
       const textarea = textareaRef.current;
-      textarea.style.height = '48px';
-      textarea.style.overflowY = 'hidden';
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Set height based on content, with min and max constraints
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 48), 120);
+      textarea.style.height = `${newHeight}px`;
+      // Show scrollbar if content exceeds max height
+      textarea.style.overflowY = textarea.scrollHeight > 120 ? 'auto' : 'hidden';
     }
-  }, [inputValue, maxRows]);
+  }, [inputValue]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -67,10 +114,13 @@ export const AIInput: React.FC<AIInputProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (showCustomDimensionsModal) {
+        if (showAddTemplateModal) {
+          setShowAddTemplateModal(false);
+        } else if (showTemplateModal) {
+          setShowTemplateModal(false);
+        } else if (showCustomDimensionsModal) {
           setShowCustomDimensionsModal(false);
-        }
-        if (showRatioDropdown) {
+        } else if (showRatioDropdown) {
           setShowRatioDropdown(false);
         }
       }
@@ -78,7 +128,7 @@ export const AIInput: React.FC<AIInputProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showCustomDimensionsModal, showRatioDropdown]);
+  }, [showCustomDimensionsModal, showRatioDropdown, showTemplateModal, showAddTemplateModal]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -252,6 +302,32 @@ export const AIInput: React.FC<AIInputProps> = ({
       reader.readAsDataURL(file);
     });
   };
+  
+  // 模板相关处理函数
+  const handleTemplateSelect = (template: {id: string, name: string, content: string}) => {
+    setInputValue(template.content);
+    setShowTemplateModal(false);
+  };
+  
+  const handleAddTemplate = () => {
+    if (newTemplateName.trim() && newTemplateContent.trim()) {
+      const newTemplate = {
+        id: Date.now().toString(),
+        name: newTemplateName.trim(),
+        content: newTemplateContent.trim()
+      };
+      const updatedTemplates = [...customTemplates, newTemplate];
+      saveCustomTemplates(updatedTemplates);
+      setNewTemplateName('');
+      setNewTemplateContent('');
+      setShowAddTemplateModal(false);
+    }
+  };
+  
+  const handleDeleteTemplate = (templateId: string) => {
+    const updatedTemplates = customTemplates.filter(t => t.id !== templateId);
+    saveCustomTemplates(updatedTemplates);
+  };
 
   // 将宽高比转换为2K分辨率的具体像素尺寸
   const convertAspectRatioToPixelSize = (aspectRatio: string): string => {
@@ -352,6 +428,11 @@ export const AIInput: React.FC<AIInputProps> = ({
                 onFocus={() => setIsExpanded(true)}
                 placeholder="描述你想要生成的图片..."
                 rows={1}
+                style={{
+                  minHeight: '48px',
+                  maxHeight: '120px',
+                  height: 'auto'
+                }}
                 aria-label={t('ai.input.placeholder') || placeholder}
               />
             </div>
@@ -402,6 +483,16 @@ export const AIInput: React.FC<AIInputProps> = ({
                   />
                 </button>
               </div>
+
+              {/* Prompt模板按钮 */}
+              <button
+                type="button"
+                className="ai-template-btn"
+                onClick={() => setShowTemplateModal(true)}
+                title="选择Prompt模板"
+              >
+                <BookOpen size={20} strokeWidth={1.5} />
+              </button>
 
               {/* 生成按钮 */}
               <button
@@ -595,6 +686,164 @@ export const AIInput: React.FC<AIInputProps> = ({
                 }}
               >
                 确定
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      
+      {/* Prompt模板弹窗 */}
+      {showTemplateModal && createPortal(
+        <div className="ai-template-overlay">
+          <div className="ai-template-modal">
+            <div className="ai-template-header">
+              <h3>选择Prompt模板</h3>
+              <button
+                type="button"
+                className="ai-template-close"
+                onClick={() => setShowTemplateModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="ai-template-content">
+              {/* 预设模板 */}
+              <div className="ai-template-section">
+                <h4>预设模板</h4>
+                <div className="ai-template-list">
+                  {presetTemplates.map((template, index) => (
+                    <div key={index} className="ai-template-item">
+                      <button
+                        type="button"
+                        className="ai-template-btn-item"
+                        onClick={() => handleTemplateSelect(template)}
+                      >
+                        <div className="ai-template-name">{template.name}</div>
+                        <div className="ai-template-preview">{template.content}</div>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* 自定义模板 */}
+              <div className="ai-template-section">
+                <div className="ai-template-section-header">
+                  <h4>自定义模板</h4>
+                  <button
+                    type="button"
+                    className="ai-template-add-btn"
+                    onClick={() => setShowAddTemplateModal(true)}
+                    title="新增模板"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <div className="ai-template-list">
+                  {customTemplates.map((template, index) => (
+                    <div key={index} className="ai-template-item">
+                      <button
+                        type="button"
+                        className="ai-template-btn-item"
+                        onClick={() => handleTemplateSelect(template)}
+                      >
+                        <div className="ai-template-name">{template.name}</div>
+                        <div className="ai-template-preview">{template.content}</div>
+                      </button>
+                      <button
+                        type="button"
+                        className="ai-template-delete-btn"
+                        onClick={() => handleDeleteTemplate(index)}
+                        title="删除模板"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {customTemplates.length === 0 && (
+                    <div className="ai-template-empty">
+                      暂无自定义模板，点击右上角 + 号添加
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      
+      {/* 新增模板弹窗 */}
+      {showAddTemplateModal && createPortal(
+        <div className="ai-add-template-overlay">
+          <div className="ai-add-template-modal">
+            <div className="ai-add-template-header">
+              <h3>新增Prompt模板</h3>
+              <button
+                type="button"
+                className="ai-add-template-close"
+                onClick={() => {
+                  setShowAddTemplateModal(false);
+                  setNewTemplateName('');
+                  setNewTemplateContent('');
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="ai-add-template-content">
+              <div className="ai-add-template-field">
+                <label htmlFor="templateName">模板名称</label>
+                <input
+                  id="templateName"
+                  type="text"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="请输入模板名称"
+                  className="ai-add-template-input"
+                  maxLength={50}
+                />
+              </div>
+              
+              <div className="ai-add-template-field">
+                <label htmlFor="templateContent">模板内容</label>
+                <textarea
+                  id="templateContent"
+                  value={newTemplateContent}
+                  onChange={(e) => setNewTemplateContent(e.target.value)}
+                  placeholder="请输入Prompt模板内容"
+                  className="ai-add-template-textarea"
+                  rows={6}
+                  maxLength={500}
+                />
+                <div className="ai-add-template-counter">
+                  {newTemplateContent.length}/500
+                </div>
+              </div>
+            </div>
+            
+            <div className="ai-add-template-actions">
+              <button
+                type="button"
+                className="ai-add-template-cancel"
+                onClick={() => {
+                  setShowAddTemplateModal(false);
+                  setNewTemplateName('');
+                  setNewTemplateContent('');
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="ai-add-template-confirm"
+                onClick={handleAddTemplate}
+                disabled={!newTemplateName.trim() || !newTemplateContent.trim()}
+              >
+                保存
               </button>
             </div>
           </div>
