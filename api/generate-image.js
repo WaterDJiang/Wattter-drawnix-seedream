@@ -1,5 +1,5 @@
-// Vercel serverless function for image generation API
-import https from 'https';
+// Node.js API handler for image generation
+const https = require('https');
 
 const VOLCENGINE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 
@@ -11,8 +11,8 @@ const corsHeaders = {
   'Access-Control-Allow-Credentials': true
 };
 
-// Main Vercel function handler
-export default function handler(req, res) {
+// Main handler function
+function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.status(200);
@@ -183,4 +183,5 @@ const handleImageGeneration = (req, res) => {
   }
 };
 
-// Vercel function - no server setup needed
+// Export the handler function for CommonJS
+module.exports = handler;
