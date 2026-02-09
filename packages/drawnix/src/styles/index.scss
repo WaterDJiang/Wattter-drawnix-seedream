@@ -280,6 +280,20 @@
     background: rgba(59, 130, 246, 0.10);
 }
 
+.drawnix-context-menu__divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 4px 6px;
+}
+
+.drawnix-context-menu__item--danger {
+    color: #ef4444 !important;
+}
+
+.drawnix-context-menu__item--danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+}
+
 [data-theme="dark"] {
     .drawnix-context-menu {
         background: rgba(44, 44, 44, 0.96);
@@ -290,5 +304,14 @@
     }
     .drawnix-context-menu__item:hover {
         background: rgba(59, 130, 246, 0.18);
+    }
+    .drawnix-context-menu__divider {
+        background: rgba(255, 255, 255, 0.12);
+    }
+    .drawnix-context-menu__item--danger {
+        color: #f87171 !important;
+    }
+    .drawnix-context-menu__item--danger:hover {
+        background: rgba(248, 113, 113, 0.15) !important;
     }
 }

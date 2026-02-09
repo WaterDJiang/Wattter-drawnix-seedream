@@ -1,4 +1,5 @@
 import { Board, BoardChangeData, Wrapper } from '@plait-board/react-board';
+import { createPortal } from 'react-dom';
 import {
   PlaitBoard,
   PlaitBoardOptions,
@@ -12,6 +13,7 @@ import {
   getSelectedElements,
   RectangleClient,
   Transforms,
+  CoreTransforms,
 } from '@plait/core';
 import React, { useState, useRef, useEffect } from 'react';
 import { withGroup } from '@plait/common';
@@ -505,6 +507,7 @@ export const Drawnix: React.FC<DrawnixProps> = ({
   });
 
   const [board, setBoard] = useState<DrawnixBoard | null>(null);
+  const [globalContextMenu, setGlobalContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   if (board) {
     board.appState = appState;
@@ -564,6 +567,20 @@ export const Drawnix: React.FC<DrawnixProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!globalContextMenu) return;
+    const handleMouseDown = () => setGlobalContextMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setGlobalContextMenu(null);
+    };
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [globalContextMenu]);
+
+  useEffect(() => {
     const handler = (event: Event) => {
       const customEvent = event as CustomEvent<{
         position?: { x: number; y: number };
@@ -600,6 +617,14 @@ export const Drawnix: React.FC<DrawnixProps> = ({
             'drawnix--mobile': appState.isMobile,
           })}
           ref={containerRef}
+          onContextMenu={(e) => {
+            if (!board) return;
+            const selectedElements = getSelectedElements(board);
+            if (selectedElements.length > 0) {
+              e.preventDefault();
+              setGlobalContextMenu({ x: e.clientX, y: e.clientY });
+            }
+          }}
         >
           <Wrapper
             value={value}
@@ -798,6 +823,32 @@ export const Drawnix: React.FC<DrawnixProps> = ({
             )}
             <AIInput></AIInput>
           </Wrapper>
+          {globalContextMenu && createPortal(
+            <div 
+              className="drawnix-context-menu"
+              style={{ left: globalContextMenu.x, top: globalContextMenu.y }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <button
+                type="button"
+                className="drawnix-context-menu__item drawnix-context-menu__item--danger"
+                onClick={() => {
+                  if (board) {
+                    const selectedElements = getSelectedElements(board);
+                    CoreTransforms.removeElements(board, selectedElements);
+                  }
+                  setGlobalContextMenu(null);
+                }}
+              >
+                删除所选内容
+              </button>
+            </div>,
+            document.body
+          )}
         </div>
       </DrawnixContext.Provider>
     </I18nProvider>

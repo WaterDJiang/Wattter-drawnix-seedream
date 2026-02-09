@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageProps } from '@plait/common';
+import { CoreTransforms, getSelectedElements } from '@plait/core';
 import classNames from 'classnames';
 import { Play, Sparkles, Video, Wand2 } from 'lucide-react';
 import { downloadUrl, getProxyUrl } from '../../utils/download';
@@ -42,7 +43,7 @@ export const Image: React.FC<ImageProps> = (props: ImageProps) => {
         e.preventDefault();
         e.stopPropagation();
         const width = 180;
-        const height = videoUrl ? 92 : 54;
+        const height = videoUrl ? 130 : 92;
         const x = Math.max(8, Math.min(e.clientX, window.innerWidth - width - 8));
         const y = Math.max(8, Math.min(e.clientY, window.innerHeight - height - 8));
         setContextMenu({ x, y });
@@ -164,12 +165,28 @@ export const Image: React.FC<ImageProps> = (props: ImageProps) => {
                   } catch (e) {
                     alert(e instanceof Error ? e.message : '保存视频失败');
                   }
-                }}
-              >
-                保存视频
-              </button>
-            )}
-          </div>,
+              }}
+            >
+              保存视频
+            </button>
+          )}
+          <div className="drawnix-context-menu__divider" />
+          <button
+            type="button"
+            className="drawnix-context-menu__item drawnix-context-menu__item--danger"
+            onClick={() => {
+              setContextMenu(null);
+              const selectedElements = getSelectedElements(props.board);
+              // 如果当前点击的元素不在选中列表中，则只删除当前元素
+              const elementsToRemove = selectedElements.includes(props.element)
+                ? selectedElements
+                : [props.element];
+              CoreTransforms.removeElements(props.board, elementsToRemove);
+            }}
+          >
+            删除
+          </button>
+        </div>,
           document.body
         )}
       {videoUrl && (
