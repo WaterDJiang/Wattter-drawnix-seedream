@@ -17,7 +17,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 导入API路由
 const generateImageHandler = require('./api/generate-image.js');
+const generateVideoHandler = require('./api/generate-video.js');
 const imageProxyHandler = require('./api/image-proxy.js');
+const videoProxyHandler = require('./api/video-proxy.js');
 
 // API路由
 app.all('/generate-image', (req, res) => {
@@ -30,6 +32,21 @@ app.all('/image-proxy', (req, res) => {
   imageProxyHandler(req, res);
 });
 
+app.all('/video-proxy', (req, res) => {
+  console.log(`🚀 收到${req.method}请求: /video-proxy`);
+  videoProxyHandler(req, res);
+});
+
+app.all('/generate-video', (req, res) => {
+  console.log(`🚀 收到${req.method}请求: /generate-video`);
+  generateVideoHandler(req, res);
+});
+
+app.all('/generate-video/:id', (req, res) => {
+  console.log(`🚀 收到${req.method}请求: /generate-video/${req.params.id}`);
+  generateVideoHandler(req, res);
+});
+
 // 健康检查
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -38,7 +55,7 @@ app.get('/health', (req, res) => {
 // 处理前端路由 - 所有非API请求都返回index.html
 app.use((req, res, next) => {
   // 跳过API路由和静态文件
-  if (req.path.startsWith('/api/') || req.path.startsWith('/generate-image') || req.path.startsWith('/image-proxy') || req.path.startsWith('/health') || req.path.includes('.')) {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/generate-image') || req.path.startsWith('/generate-video') || req.path.startsWith('/image-proxy') || req.path.startsWith('/video-proxy') || req.path.startsWith('/health') || req.path.includes('.')) {
     return next();
   }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -49,7 +66,9 @@ app.listen(PORT, () => {
   console.log(`🚀 API服务器已启动`);
   console.log(`🌐 服务地址: http://localhost:${PORT}`);
   console.log(`🔗 图片生成API: http://localhost:${PORT}/generate-image`);
+  console.log(`🔗 视频生成API: http://localhost:${PORT}/generate-video`);
   console.log(`🔗 图片代理API: http://localhost:${PORT}/image-proxy`);
+  console.log(`🔗 视频代理API: http://localhost:${PORT}/video-proxy`);
   console.log(`🔗 健康检查: http://localhost:${PORT}/health`);
 });
 

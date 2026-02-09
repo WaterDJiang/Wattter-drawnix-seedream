@@ -7,6 +7,9 @@ export interface ImageToImageRequest {
   size?: string;
   watermark?: boolean;
   apiKey: string;
+  model?: string;
+  provider?: 'volcengine' | 'modelscope';
+  modelScopeApiKey?: string;
   // 组图生成参数
   sequential_image_generation?: 'auto' | 'disabled';
   max_images?: number; // 最大生成图片数量
@@ -171,7 +174,7 @@ export function calculateSizeFromAspectRatio(
   }
   
   // 默认尺寸计算
-  const baseSize = 512;
+  const baseSize = 2240;
   const ratio = widthRatio / heightRatio;
   
   if (ratio > 1) {
@@ -267,7 +270,7 @@ export async function generateImageToImage(
 
   // 根据豆包Seedream API文档格式化请求
   const requestBody: any = {
-    model: "doubao-seedream-4-0-250828",
+    model: request.model || "doubao-seedream-4-5-251128",
     prompt: request.prompt,
     // 豆包API：单图用字符串，多图用数组
     image: request.images.length === 1 ? request.images[0] : request.images,
@@ -275,7 +278,9 @@ export async function generateImageToImage(
     response_format: "url",
     watermark: request.watermark || false,
     stream: true,
-    apiKey: request.apiKey
+    apiKey: request.apiKey,
+    provider: request.provider || 'volcengine',
+    ...(request.modelScopeApiKey ? { modelScopeApiKey: request.modelScopeApiKey } : {})
   };
 
   // 添加组图生成参数（让豆包API自己判断）
