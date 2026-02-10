@@ -3,13 +3,19 @@ FROM node:20 AS frontend-builder
 
 WORKDIR /builder
 
-# 复制package文件并安装依赖
+# 禁用 NX 守护进程，在 Docker 容器中通常不需要且容易出错
+ENV NX_DAEMON=false
+
+# 复制依赖文件并安装
 COPY package*.json ./
+# 使用 npm install 安装完整依赖以确保 nx 等工具可用
 RUN npm install
 
-# 复制源代码并构建前端
+# 复制所有源代码
 COPY . .
-RUN npm run build:web
+
+# 构建前端：先重置 NX 缓存，然后执行构建
+RUN npx nx reset && npm run build:web
 
 # 第二阶段：运行时环境
 FROM node:20-alpine AS runtime
