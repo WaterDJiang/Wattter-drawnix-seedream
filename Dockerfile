@@ -1,21 +1,27 @@
 # 第一阶段：构建前端
 FROM node:20 AS frontend-builder
 
+# 安装 git，NX 在处理项目图时可能依赖 git 进行元数据分析
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /builder
 
-# 禁用 NX 守护进程，在 Docker 容器中通常不需要且容易出错
+# 禁用 NX 守护进程和云服务，确保在 CI 环境中行为可预测
 ENV NX_DAEMON=false
+ENV NX_SKIP_CHECK_FOR_UPDATE=true
+ENV NX_NO_CLOUD=true
 
-# 复制依赖文件并安装
+# 复制依赖文件
 COPY package*.json ./
-# 使用 npm install 安装完整依赖以确保 nx 等工具可用
-RUN npm install
+# 使用 npm ci 进行更严格的依赖安装（如果存在 package-lock.json）
+# 如果没有 lock 文件则回退到 npm install
+RUN npm ci || npm install
 
 # 复制所有源代码
 COPY . .
 
-# 构建前端：先重置 NX 缓存，然后执行构建
-RUN npx nx reset && npm run build:web
+# 清理可能存在的本地缓存并构建
+RUN npx nx reset && npx nx build web
 
 # 第二阶段：运行时环境
 FROM node:20-alpine AS runtime
