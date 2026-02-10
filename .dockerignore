@@ -1,14 +1,12 @@
 # Build artifacts and dependencies
-# .nx - commented out as it may be needed for build
-.dist
-node_modules
+dist/
+node_modules/
 .node_modules
 .npm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-dist/
 
 # Development tools and IDE configurations
 .vscode/
@@ -27,7 +25,6 @@ LICENSE
 
 # Development scripts and deployment
 scripts/
-deploy-vercel.sh
 
 # Configuration files (development only)
 .editorconfig
@@ -35,13 +32,11 @@ deploy-vercel.sh
 .eslintignore
 .prettierrc
 .prettierignore
-vercel.json
-# Note: tsconfig.base.json and nx.json are needed for build
 
 # Generated Docker images
 *.tar
 *.tar.gz
 
 # Git files
-.git
+.git/
 .gitignore

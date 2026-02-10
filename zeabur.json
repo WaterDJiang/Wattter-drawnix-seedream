@@ -6,6 +6,8 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "PORT": "3000"
+    "PORT": "3000",
+    "VOLCENGINE_API_KEY": "",
+    "MODELSCOPE_API_KEY": ""
   }
 }
