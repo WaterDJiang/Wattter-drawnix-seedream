@@ -1,5 +1,5 @@
 # 第一阶段：构建前端
-FROM --platform=linux/amd64 node:20 AS frontend-builder
+FROM node:20 AS frontend-builder
 
 WORKDIR /builder
 
@@ -7,12 +7,12 @@ WORKDIR /builder
 COPY package*.json ./
 RUN npm install
 
-# 复制源代码并构建前端（.dockerignore会排除不必要的文件）
+# 复制源代码并构建前端
 COPY . .
-RUN npm run build
+RUN npm run build:web
 
 # 第二阶段：运行时环境
-FROM --platform=linux/amd64 node:20-alpine AS runtime
+FROM node:20-alpine AS runtime
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ EXPOSE 3000
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 # 启动服务
 CMD ["sh", "/app/start.sh"]

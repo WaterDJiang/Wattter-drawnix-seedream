@@ -2,6 +2,9 @@ const https = require('https');
 
 const VOLCENGINE_VIDEO_API = 'https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks';
 
+// 从环境变量获取默认API密钥（可选，用于部署端配置）
+const DEFAULT_VOLCENGINE_API_KEY = process.env.VOLCENGINE_API_KEY;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -56,9 +59,9 @@ const handleVideoTaskGet = (req, res) => {
   };
 
   try {
-    const apiKey = req.headers['x-ark-api-key'] || req.query?.apiKey;
+    const apiKey = req.headers['x-ark-api-key'] || req.query?.apiKey || DEFAULT_VOLCENGINE_API_KEY;
     if (!apiKey) {
-      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥' });
+      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥或联系管理员配置环境变量' });
       return;
     }
 
@@ -132,9 +135,9 @@ const handleVideoTaskCreate = (req, res) => {
       return;
     }
 
-    const apiKey = body.apiKey;
+    const apiKey = body.apiKey || DEFAULT_VOLCENGINE_API_KEY;
     if (!apiKey) {
-      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥' });
+      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥或联系管理员配置环境变量' });
       return;
     }
 

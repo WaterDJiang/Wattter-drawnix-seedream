@@ -4,6 +4,10 @@ const https = require('https');
 const VOLCENGINE_API = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const MODELSCOPE_API_BASE = 'https://api-inference.modelscope.cn/v1';
 
+// 从环境变量获取默认API密钥（可选，用于部署端配置）
+const DEFAULT_VOLCENGINE_API_KEY = process.env.VOLCENGINE_API_KEY;
+const DEFAULT_MODELSCOPE_API_KEY = process.env.MODELSCOPE_API_KEY;
+
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,9 +85,10 @@ const handleImageGeneration = async (req, res) => {
 // --- Volcengine Handler ---
 
 const handleVolcengineGeneration = (req, res, requestData, sendResponse) => {
-    const apiKey = requestData.apiKey;
+    // 优先使用请求中的apiKey，其次使用环境变量中的DEFAULT_VOLCENGINE_API_KEY
+    const apiKey = requestData.apiKey || DEFAULT_VOLCENGINE_API_KEY;
     if (!apiKey) {
-      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥' });
+      sendResponse(400, { error: 'API密钥未提供，请在设置中配置API密钥或联系管理员配置环境变量' });
       return;
     }
 
@@ -170,9 +175,10 @@ const handleVolcengineGeneration = (req, res, requestData, sendResponse) => {
 // --- ModelScope Handler ---
 
 const handleModelScopeGeneration = async (req, res, requestData, sendResponse) => {
-    const apiKey = requestData.modelScopeApiKey;
+    // 优先使用请求中的apiKey，其次使用环境变量中的DEFAULT_MODELSCOPE_API_KEY
+    const apiKey = requestData.modelScopeApiKey || DEFAULT_MODELSCOPE_API_KEY;
     if (!apiKey) {
-        sendResponse(400, { error: 'ModelScope API密钥未提供，请在设置中配置' });
+        sendResponse(400, { error: 'ModelScope API密钥未提供，请在设置中配置或联系管理员配置环境变量' });
         return;
     }
 

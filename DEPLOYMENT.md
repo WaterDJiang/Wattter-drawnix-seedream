@@ -49,27 +49,26 @@ vercel
 vercel deploy dist/apps/web
 ```
 
+## 🚀 Zeabur Deployment Setup
+
+### Prerequisites
+- GitHub repository connected to Zeabur
+- Docker support (Project includes `Dockerfile`)
+
+### Deployment Steps
+1. **Connect Repository**: Import your Drawnix repository into Zeabur.
+2. **Auto-detection**: Zeabur will automatically detect the `Dockerfile` and `zeabur.json`.
+3. **Environment Variables**: (Optional) Add the following variables in Zeabur dashboard to pre-configure API keys:
+   - `VOLCENGINE_API_KEY`: Your Volcengine (豆包) API key.
+   - `MODELSCOPE_API_KEY`: Your ModelScope API key.
+4. **Deploy**: Zeabur will build the Docker image and deploy the service.
+
 ### Configuration
-
-The project includes a `vercel.json` configuration file with:
-- Build settings optimized for Nx/Vite
-- SPA routing (all routes → index.html)
-- Security headers
-- Output directory: `dist/apps/web`
-
-### Environment Variables
-
-If needed, set environment variables in Vercel:
-```bash
-vercel env add VARIABLE_NAME
-```
-
-### Custom Domain
-
-After deployment, you can add a custom domain:
-1. Go to Vercel project settings
-2. Add domain under "Domains" section
-3. Update DNS records as instructed
+The project includes `zeabur.json` which specifies:
+- Service name: `drawnix-seedream`
+- Deployment type: `web`
+- Dockerfile path: `Dockerfile`
+- Default environment variables (`PORT: 3000`)
 
 ## 📋 Build Commands
 
