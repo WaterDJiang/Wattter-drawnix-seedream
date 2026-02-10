@@ -11,6 +11,9 @@ ENV NX_DAEMON=false
 ENV NX_SKIP_CHECK_FOR_UPDATE=true
 ENV NX_NO_CLOUD=true
 
+# 解决 git 安全目录问题，这是 Docker 环境中 NX 常见的报错原因
+RUN git config --global --add safe.directory /builder
+
 # 复制依赖文件
 COPY package*.json ./
 # 统一使用 npm install 并增加 legacy-peer-deps 解决版本冲突
@@ -19,8 +22,8 @@ RUN npm install --legacy-peer-deps
 # 复制所有源代码
 COPY . .
 
-# 清理可能存在的本地缓存并构建
-RUN npx nx reset && npx nx build web
+# 构建前端
+RUN npx nx build web --verbose
 
 # 第二阶段：运行时环境
 FROM node:20-alpine AS runtime
