@@ -13,9 +13,8 @@ ENV NX_NO_CLOUD=true
 
 # 复制依赖文件
 COPY package*.json ./
-# 使用 npm ci 进行更严格的依赖安装（如果存在 package-lock.json）
-# 如果没有 lock 文件则回退到 npm install
-RUN npm ci || npm install
+# 统一使用 npm install 并增加 legacy-peer-deps 解决版本冲突
+RUN npm install --legacy-peer-deps
 
 # 复制所有源代码
 COPY . .
@@ -30,7 +29,7 @@ WORKDIR /app
 
 # 安装生产依赖
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # 复制后端API文件
 COPY server.js ./
