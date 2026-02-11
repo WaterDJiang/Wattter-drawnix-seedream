@@ -7,13 +7,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # 安装依赖（使用legacy-peer-deps解决版本冲突）
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # 复制源代码
 COPY . .
 
 # 使用vite直接构建前端（绕过NX的复杂性）
-RUN npm run build:web
+# 设置 NX_DAEMON=false 确保在 Docker 环境中构建稳定
+RUN NX_DAEMON=false npm run build:web
 
 # 第二阶段：运行时环境
 FROM node:20-alpine AS runtime
@@ -22,7 +23,7 @@ WORKDIR /app
 
 # 只安装生产依赖
 COPY package*.json ./
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # 复制后端API文件
 COPY server.js ./
@@ -31,12 +32,10 @@ COPY api/ ./api/
 # 复制前端构建产物
 COPY --from=builder /app/dist/apps/web/ ./public/
 
-# 暴露端口
+# 暴露端口（Zeabur 会自动识别，但 EXPOSE 是一个好习惯）
 EXPOSE 3000
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000) + '/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
-
 # 启动服务
+# 使用环境变量 PORT，如果未定义则默认 3000
+# 移除 HEALTHCHECK，因为 Zeabur 有自己的健康检查机制，且 Docker 内置健康检查有时会因环境差异导致失败
 CMD ["node", "server.js"]

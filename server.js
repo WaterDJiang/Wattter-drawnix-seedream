@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,15 +62,23 @@ app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// 检查静态文件目录
+const publicPath = path.join(__dirname, 'public');
+if (!fs.existsSync(publicPath)) {
+  console.warn(`⚠️ 警告: 静态文件目录 ${publicPath} 不存在`);
+} else {
+  const indexPath = path.join(publicPath, 'index.html');
+  if (!fs.existsSync(indexPath)) {
+    console.warn(`⚠️ 警告: ${indexPath} 不存在，前端路由可能会失效`);
+  }
+}
+
 // 启动服务器
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 API服务器已启动`);
-  console.log(`🌐 服务地址: http://localhost:${PORT}`);
-  console.log(`🔗 图片生成API: http://localhost:${PORT}/generate-image`);
-  console.log(`🔗 视频生成API: http://localhost:${PORT}/generate-video`);
-  console.log(`🔗 图片代理API: http://localhost:${PORT}/image-proxy`);
-  console.log(`🔗 视频代理API: http://localhost:${PORT}/video-proxy`);
+  console.log(`🌐 监听地址: 0.0.0.0:${PORT}`);
   console.log(`🔗 健康检查: http://localhost:${PORT}/health`);
+  console.log(`📂 静态文件目录: ${path.join(__dirname, 'public')}`);
 });
 
 // 优雅关闭
