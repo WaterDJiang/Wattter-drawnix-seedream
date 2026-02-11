@@ -1,6 +1,8 @@
 # Build artifacts and dependencies
 dist/
 node_modules/
+.nx/
+.nx-cache/
 .node_modules
 .npm
 npm-debug.log*

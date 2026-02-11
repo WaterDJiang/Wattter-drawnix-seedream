@@ -12,9 +12,9 @@ RUN npm install --legacy-peer-deps
 # 复制源代码
 COPY . .
 
-# 使用vite直接构建前端（绕过NX的复杂性）
-# 设置 NX_DAEMON=false 确保在 Docker 环境中构建稳定
-RUN NX_DAEMON=false npm run build:web
+# 绕过 NX 直接使用 Vite 构建前端
+# Nx 的图谱处理在 Docker 环境中容易报错（如 Failed to process project graph）
+RUN npx vite build apps/web --config apps/web/vite.config.mts
 
 # 第二阶段：运行时环境
 FROM node:20-alpine AS runtime
